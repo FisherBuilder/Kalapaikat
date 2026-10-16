@@ -674,16 +674,34 @@ svg.leaflet-image-layer.leaflet-interactive path {
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
 #app{display:flex;flex-direction:column;height:100%}
-header{display:flex;gap:6px;align-items:center;padding:8px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+header{display:flex;gap:6px;align-items:center;padding:6px 8px;padding-top:calc(6px + env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
+header select{flex:1 1 0;min-width:0}
+header #btnLocate{flex:none;width:42px;padding:7px 0}
+header #btnAnalyze{flex:none}
 header h1{font-size:16px;margin:0 6px 0 2px;white-space:nowrap}
 select,input,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
 button{cursor:pointer}
 button.p{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
 @media (prefers-color-scheme:dark){button.p{color:#06231c}}
-#main{flex:1;display:flex;min-height:0}
+#main{flex:1;display:flex;min-height:0;position:relative}
 #map{flex:1;min-height:0}
-#side{width:380px;max-width:100%;overflow:auto;background:var(--panel);border-left:1px solid var(--line);padding:10px 12px}
-@media (max-width:820px){#main{flex-direction:column}#map{flex:none;height:58vh}#side{width:100%;border-left:0;border-top:1px solid var(--line);flex:1}}
+#bottom{background:var(--panel);border-top:1px solid var(--line);padding:6px 10px calc(4px + env(safe-area-inset-bottom));z-index:1200}
+.timerow{display:flex;align-items:center;gap:10px}
+.timerow label{font-weight:600;font-size:13px;white-space:nowrap;min-width:120px}
+.timerow input{flex:1}
+.tabs{display:flex;gap:4px;margin-top:4px}
+.tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;padding:4px 2px;border:0;background:transparent;color:var(--muted);border-radius:8px}
+.tabs button span{font-size:18px;line-height:1.2}
+.tabs button.on{background:var(--acc2);color:var(--ink);font-weight:600}
+.sheet{position:fixed;left:0;right:0;z-index:1100;background:var(--panel);border-top:1px solid var(--line);border-radius:14px 14px 0 0;box-shadow:0 -4px 18px rgba(0,0,0,.25);display:flex;flex-direction:column;max-height:52vh}
+.sheet[hidden]{display:none}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 0 14px}
+.sheet-head b{font-size:15px}
+.sheet-head .modal-x{float:none;position:static;width:38px;height:38px}
+.sheet-body{overflow:auto;padding:4px 14px 12px;-webkit-overflow-scrolling:touch}
+.sec{display:none}.sec.on{display:block}
+@media (min-width:820px){.sheet{left:auto;right:12px;width:400px;border-radius:14px;max-height:calc(100vh - 190px)}}
+#toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:1300;display:none;max-width:88%;background:rgba(20,33,29,.92);color:#fff;padding:9px 13px;border-radius:10px;font-size:13px;box-shadow:0 2px 10px rgba(0,0,0,.35);cursor:pointer}
 h2{font-size:14px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 .row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0}
 .kv{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:14px}
@@ -701,51 +719,79 @@ details{margin:6px 0}summary{cursor:pointer;font-weight:600}
 .small{font-size:12px;color:var(--muted)}
 .hs{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#880e4f;color:#fff;font-weight:700;font-size:12px;border:2px solid #fff}
 input[type=range]{width:100%;padding:0}
+.dlbl{background:rgba(255,255,255,.8);border:0;box-shadow:none;padding:0 3px;font-size:10px;color:#0d47a1;font-weight:600}
+.dlbl::before{display:none}
+#prog{position:absolute;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.25);pointer-events:none}
+#prog .box{background:var(--panel);color:var(--ink);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 18px rgba(0,0,0,.3);max-width:88%}
+#prog svg{flex:none}
+#prog .pt{font-size:13px;line-height:1.35}
+#prog .pt b{font-size:15px}
+.infobtn{margin-top:8px;width:100%;background:var(--acc2);border-color:var(--acc2);color:var(--ink);font-weight:600}
+.modal{position:fixed;inset:0;z-index:5000;display:flex;align-items:flex-end;justify-content:center}
+.modal[hidden]{display:none}
+.modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.modal-panel{position:relative;background:var(--panel);color:var(--ink);width:100%;max-width:680px;max-height:88vh;overflow:auto;border-radius:16px 16px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -4px 24px rgba(0,0,0,.3);-webkit-overflow-scrolling:touch}
+@media (min-width:700px){.modal{align-items:center}.modal-panel{border-radius:16px}}
+.modal-x{position:sticky;top:0;float:right;width:44px;height:44px;border-radius:50%;font-size:18px;line-height:1;z-index:2;background:var(--bg)}
+.modal h3{font-size:15px;margin:14px 0 2px}
+.lrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px}
+.lrow figure{margin:0;padding:6px 4px;background:#eef3f6;border-radius:10px;text-align:center}
+.lrow svg{width:100%;height:auto;max-width:150px}
+.lrow figcaption{font-size:12px;color:#334}
+.swrow{display:flex;flex-wrap:wrap;gap:6px 12px;margin:8px 0}
+.sw{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.lk{border-top:1px solid var(--line);margin-top:10px}
 .lf-me{width:16px;height:16px;border-radius:50%;background:#1e88e5;border:3px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.5)}
 </style>
 </head>
 <body>
 <div id="app">
 <header>
-  <h1>🎣 Kalapaikka-arvio</h1>
   <select id="species" aria-label="Kalalaji">
     <option value="hauki">Hauki</option><option value="ahven">Ahven</option><option value="kuha">Kuha</option>
     <option value="taimen">Taimen</option><option value="siika">Siika</option>
   </select>
   <select id="clarity" aria-label="Veden väri">
-    <option value="kirkas">Kirkas vesi</option><option value="humus" selected>Humusvesi (ruskea)</option><option value="samea">Samea vesi</option>
+    <option value="kirkas">Kirkas vesi</option><option value="humus" selected>Humus</option><option value="samea">Samea</option>
   </select>
-  <button id="btnLocate">📍 Paikanna</button>
-  <button id="btnAnalyze" class="p">Analysoi näkymä</button>
+  <button id="btnLocate" aria-label="Paikanna">📍</button>
+  <button id="btnAnalyze" class="p">Analysoi</button>
 </header>
-<div id="main">
-  <div id="map"></div>
-  <div id="side">
-    <div class="row"><label for="time" class="small">Ajankohta</label></div>
-    <input type="range" id="time" min="0" max="48" value="0">
-    <div class="row"><b id="timeLbl">nyt</b></div>
-
-    <h2>Olosuhteet</h2>
-    <div id="cond" class="status">Hae sää painamalla "Analysoi näkymä". Sää haetaan kartan keskipisteeseen.</div>
-    <div class="row"><label class="small" for="wtemp">Veden lämpö °C (tyhjä = arvio ilman lämmöstä)</label>
-      <input id="wtemp" type="number" step="0.5" style="width:90px"></div>
-
-    <h2>Aktiivisuus</h2>
-    <div id="act" class="status">–</div>
-    <div id="hours"></div>
-
-    <h2>Viehesuositus</h2>
-    <div id="lure" class="status">–</div>
-
-    <h2>Kartta-arvio</h2>
-    <div class="legend"><span>heikko</span><div class="grad"></div><span>paras</span></div>
-    <div id="spotInfo" class="status">Zoomaa vesialueelle (vähintään taso 13) ja paina "Analysoi näkymä". Napauta karttaa nähdäksesi pisteen perusteet.</div>
-    <div id="dataStatus" class="status"></div>
-
-    <details>
-      <summary>Asetukset ja aineistot</summary>
+<div id="main"><div id="map"></div></div>
+<div id="bottom">
+  <div class="timerow"><label for="time" id="timeLbl">nyt</label><input type="range" id="time" min="0" max="48" value="0"></div>
+  <nav class="tabs" aria-label="Tiedot">
+    <button data-sheet="sCond"><span>🌤</span>Sää</button>
+    <button data-sheet="sAct"><span>📈</span>Aktiivisuus</button>
+    <button data-sheet="sLure"><span>🎣</span>Viehe</button>
+    <button data-sheet="sSpot"><span>🎯</span>Kohteet</button>
+    <button data-sheet="sSet"><span>⚙</span>Asetukset</button>
+  </nav>
+</div>
+<div id="sheet" class="sheet" hidden>
+  <div class="sheet-head"><b id="sheetTitle"></b><button id="sheetClose" class="modal-x" type="button" aria-label="Sulje">✕</button></div>
+  <div class="sheet-body">
+    <section id="sCond" class="sec" data-title="Olosuhteet">
+      <div id="cond" class="status">Hae sää painamalla "Analysoi". Sää haetaan kartan keskipisteeseen.</div>
+      <div class="row"><label class="small" for="wtemp">Veden lämpö °C (tyhjä = arvio ilman lämmöstä)</label>
+        <input id="wtemp" type="number" step="0.5" inputmode="decimal" style="width:90px"></div>
+    </section>
+    <section id="sAct" class="sec" data-title="Aktiivisuus">
+      <div id="act" class="status">–</div>
+      <div id="hours"></div>
+    </section>
+    <section id="sLure" class="sec" data-title="Viehesuositus">
+      <div id="lure" class="status">–</div>
+    </section>
+    <section id="sSpot" class="sec" data-title="Kohteet ja aineistot">
+      <div class="legend"><span>heikko</span><div class="grad"></div><span>paras</span></div>
+      <div id="spotInfo" class="status">Zoomaa vesialueelle (vähintään taso 13) ja paina "Analysoi". Napauta karttaa nähdäksesi pisteen perusteet.</div>
+      <div id="dataStatus" class="status"></div>
+    </section>
+    <section id="sSet" class="sec" data-title="Asetukset">
       <div class="row"><label class="small" for="mmlKey">MML API-avain (maastokartta ja syvyyskäyrät)</label>
         <input id="mmlKey" type="text" placeholder="api-key" style="width:100%"></div>
+      <div class="row"><label><input type="checkbox" id="useSykeDepth" checked> Käytä SYKEn järvisyvyysaineistoa (ei avainta)</label></div>
       <div class="row"><label><input type="checkbox" id="useMmlDepth" checked> Käytä MML:n syvyyskäyriä (vaatii avaimen)</label></div>
       <div class="row"><label><input type="checkbox" id="useTrafDepth" checked> Käytä Traficomin syvyysalueita (WFS)</label></div>
       <div class="row"><label class="small" for="trafWfs">Traficom WFS</label>
@@ -755,15 +801,24 @@ input[type=range]{width:100%;padding:0}
       <div class="row"><label class="small" for="trafWms">Merikartta-WMS (taustataso)</label>
         <input id="trafWms" type="text" style="width:100%" value="https://julkinen.traficom.fi/s57/wms"></div>
       <div class="row"><select id="wmsLayer" style="width:100%"><option value="">– WMS-tasoja ei ladattu –</option></select></div>
-      <div class="row"><button id="btnWmsCaps">Lataa WMS-tasot</button><button id="btnWmsAdd">Näytä merikartta</button><button id="btnSave">Tallenna</button></div>
+      <div class="row"><button id="btnWmsCaps">Lataa WMS-tasot</button><button id="btnWmsAdd">Näytä merikartta</button><button id="btnSave">Tallenna</button><button id="btnClearCache">Tyhjennä välimuisti</button><button id="btnDiag">Testaa yhteydet</button></div>
+      <div id="diagOut" class="status small"></div>
+      <p class="small">Vesialueet ja syvyyskäyrät tallennetaan laitteelle, joten saman alueen uusi analyysi on nopea. Vesialueet haetaan uudelleen 14 vrk ja syvyyskäyrät 30 vrk välein.</p>
       <p class="small">MML:n avoimien rajapintojen API-avaimen saa maksutta rekisteröitymällä Maanmittauslaitoksen sivuilla. Avain tallennetaan vain tämän selaimen muistiin.</p>
-    </details>
-    <details>
-      <summary>Miten arvio lasketaan</summary>
-      <p class="small">Arvio on sääntöpohjainen nyrkkisääntömalli, jota ei ole validoitu saalisaineistolla. Vesialue jaetaan ruudukkoon. Jokaiselle ruudulle lasketaan syvyys, syvyyden muutos (kanttiluku), etäisyys rantaan, tuulen suunta suhteessa rantaan ja etäisyys jokisuulle. Lajikohtaiset mieltymykset riippuvat veden lämmöstä ja vuodenajasta. Syvyys otetaan ensisijaisesti MML:n syvyyskäyristä interpoloimalla, toissijaisesti Traficomin syvyysalueista. Jos kumpaakaan ei saada, syvyys arvioidaan etäisyydestä rantaan oletuksella 4 m syvyyttä 100 m kohti, mikä on karkea arvio ja näkyy tilarivillä. Veden lämpö arvioidaan 14 vuorokauden painotetusta ilman lämmöstä, ellei mitattua arvoa syötetä. Tarkista aina paikalliset kalastusrajoitukset, rauhoitusajat ja alamitat.</p>
-    </details>
+      <details>
+        <summary>Miten arvio lasketaan</summary>
+        <p class="small">Arvio on sääntöpohjainen nyrkkisääntömalli, jota ei ole validoitu saalisaineistolla. Vesialue jaetaan ruudukkoon. Jokaiselle ruudulle lasketaan syvyys, syvyyden muutos (kanttiluku), etäisyys rantaan, tuulen suunta suhteessa rantaan ja etäisyys jokisuulle. Lajikohtaiset mieltymykset riippuvat veden lämmöstä ja vuodenajasta. Syvyys otetaan ensisijaisesti SYKEn järvisyvyysaineistosta, sitten MML:n syvyyskäyristä ja Traficomin syvyysalueista. Jos mitään näistä ei saada, syvyys arvioidaan etäisyydestä rantaan oletuksella 4 m syvyyttä 100 m kohti, mikä on karkea arvio ja näkyy tilarivillä. Veden lämpö arvioidaan 14 vuorokauden painotetusta ilman lämmöstä, ellei mitattua arvoa syötetä. Tarkista aina paikalliset kalastusrajoitukset, rauhoitusajat ja alamitat.</p>
+      </details>
+    </section>
   </div>
 </div>
+</div>
+<div id="modal" class="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-bg" onclick="closeLureModal()"></div>
+  <div class="modal-panel">
+    <button id="modalClose" class="modal-x" type="button" aria-label="Sulje" onclick="closeLureModal()">✕</button>
+    <div id="modalBody"></div>
+  </div>
 </div>
 
 <script>/* Leaflet 1.9.4 (BSD-2-Clause) */
@@ -802,23 +857,85 @@ const map = L.map("map", {zoomControl:true}).setView([61.50, 23.76], 12);
 const baseLayers = {
   "OpenStreetMap": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}),
   "OpenTopoMap": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {maxZoom:17, attribution:"© OpenStreetMap, SRTM | © OpenTopoMap"}),
-  "CARTO Voyager": L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {maxZoom:19, attribution:"© OpenStreetMap © CARTO"})
+  "Esri maastokartta": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, attribution:"Tiles © Esri"}),
+  "Esri ilmakuva": L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {maxZoom:19, attribution:"Tiles © Esri"})
 };
+const BASE_ORDER = ["OpenStreetMap","Esri maastokartta","OpenTopoMap","Esri ilmakuva"];
 let mmlLayer = null;
-baseLayers["CARTO Voyager"].addTo(map);
-let tileErr=0, tileOk=0;
-Object.values(baseLayers).forEach(l=>{ l.on("tileerror",()=>{ tileErr++; if(tileErr===8&&!tileOk) $("dataStatus").textContent="⚠ Karttatiiliä ei saada ladattua. Selain tai katseluohjelma estää verkkoyhteydet tälle tiedostolle, tai verkkoyhteys puuttuu. Kokeile toista taustakarttaa oikean yläkulman valikosta tai avaa sovellus https-osoitteesta."; }); l.on("tileload",()=>tileOk++); });
+/* ilmoitus kartan päällä */
+const toastEl = document.createElement("div"); toastEl.id = "toast"; map.getContainer().appendChild(toastEl);
+let toastT = null;
+function toast(msg, ms=7000){ toastEl.textContent = msg; toastEl.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(()=>toastEl.style.display="none", ms); }
+toastEl.onclick = () => toastEl.style.display = "none";
+/* taustakartan valvonta: jos valittu kartta ei lataa yhtään tiiltä, kokeillaan seuraavaa palvelua */
+const baseFailed = new Set(), baseReason = {};
+function sampleTileUrl(layer){ return L.Util.template(layer._url, L.extend({s:"a", z:12, x:2318, y:1150, r:""}, layer.options)); }
+async function probe(url){
+  try { const r = await fetch(url, {mode:"cors", cache:"no-store"}); return r.ok ? "OK (HTTP "+r.status+")" : "HTTP "+r.status; }
+  catch(e){ try { await fetch(url, {mode:"no-cors", cache:"no-store"}); return "vastaus saatiin, tila ei luettavissa"; } catch(e2){ return "ei yhteyttä ("+e2.message+")"; } }
+}
+function watchBase(layer, name){
+  let err=0, ok=0;
+  layer.on("tileload", ()=>{ ok++; });
+  layer.on("tileerror", async ()=>{ err++;
+    if (err!==6 || ok!==0 || !map.hasLayer(layer)) return;
+    baseFailed.add(name); baseReason[name] = await probe(sampleTileUrl(layer));
+    const next = BASE_ORDER.find(n => !baseFailed.has(n) && baseLayers[n] !== layer);
+    if (next){
+      map.removeLayer(layer); baseLayers[next].addTo(map); store.set("kp_base", next);
+      toast(`Taustakartta "${name}" ei latautunut (${baseReason[name]}), joten vaihdettiin karttaan "${next}".`+(name.startsWith("MML")?" Tarkista MML-avain asetuksista.":""), 10000);
+    } else {
+      store.set("kp_base","OpenStreetMap");
+      const fileHint = location.protocol==="file:" ? " Sovellus on avattu tiedostona. Avaa se github.io-osoitteesta." : "";
+      toast("Mikään taustakartta ei lataudu: "+Object.entries(baseReason).map(([n,r])=>n+": "+r).join("; ")+"."+fileHint+" Tarkemmat tiedot: Asetukset, Testaa yhteydet.", 20000);
+    } });
+}
+Object.entries(baseLayers).forEach(([n,l])=>watchBase(l,n));
 const layerCtl = L.control.layers(baseLayers, {}, {collapsed:true}).addTo(map);
+map.on("baselayerchange", e=>store.set("kp_base", e.name));
 function setupMml(){
   const key = $("mmlKey").value.trim();
+  const wasOn = mmlLayer && map.hasLayer(mmlLayer);
   if (mmlLayer){ layerCtl.removeLayer(mmlLayer); if (map.hasLayer(mmlLayer)) map.removeLayer(mmlLayer); mmlLayer=null; }
-  if (!key) return;
+  if (!key){ if (wasOn) baseLayers["OpenStreetMap"].addTo(map); return; }
   mmlLayer = L.tileLayer("https://avoin-karttakuva.maanmittauslaitos.fi/avoin/wmts/1.0.0/maastokartta/default/WGS84_Pseudo-Mercator/{z}/{y}/{x}.png?api-key="+encodeURIComponent(key),
     {maxZoom:19, maxNativeZoom:16, attribution:"© Maanmittauslaitos"});
+  watchBase(mmlLayer, "MML Maastokartta");
   layerCtl.addBaseLayer(mmlLayer, "MML Maastokartta");
-  Object.values(baseLayers).forEach(l=>map.removeLayer(l)); mmlLayer.addTo(map);
+  if (wasOn) mmlLayer.addTo(map);
+}
+function initBase(){
+  const want = store.get("kp_base");
+  if (want==="MML Maastokartta" && mmlLayer) mmlLayer.addTo(map);
+  else (baseLayers[want] || baseLayers["OpenStreetMap"]).addTo(map);
 }
 let scoreOverlay = null, hotspotLayer = L.layerGroup().addTo(map), wmsLayer = null;
+const SYKE_BASE = "https://paikkatiedot.ymparisto.fi/geoserver/inspire_el";
+const sykeContours = L.tileLayer.wms(SYKE_BASE+"/wms", {layers:"EL.ContourLine,EL.SpotElevation", format:"image/png", transparent:true, version:"1.3.0", attribution:"Syvyys © SYKE (CC BY 4.0)", maxZoom:19});
+const sykeAreas = L.tileLayer.wms(SYKE_BASE+"/wms", {layers:"EL.Syvyysalue", format:"image/png", transparent:true, opacity:.55, version:"1.3.0", attribution:"Syvyys © SYKE (CC BY 4.0)", maxZoom:19});
+layerCtl.addOverlay(sykeContours, "Järvien syvyyskäyrät (SYKE)");
+layerCtl.addOverlay(sykeAreas, "Järvien syvyysalueet (SYKE)");
+if (store.get("kp_sykeWms") !== "0") sykeContours.addTo(map);
+map.on("overlayadd", e=>{ if (e.layer===sykeContours) store.set("kp_sykeWms","1"); });
+map.on("overlayremove", e=>{ if (e.layer===sykeContours) store.set("kp_sykeWms","0"); });
+let areaRect = null;
+const depthLayer = L.layerGroup().addTo(map); layerCtl.addOverlay(depthLayer, "Syvyyskäyrät");
+function drawDepthLines(features, kind){
+  let labels=0;
+  L.geoJSON(features, {
+    style: kind==="area" ? {color:"#1565c0", weight:1, opacity:.6, fill:false} : {color:"#1565c0", weight:1.4, opacity:.85},
+    pointToLayer: (f,ll)=>L.circleMarker(ll,{radius:2,color:"#1565c0",weight:1,fillOpacity:1}),
+    onEachFeature: (f,l)=>{
+      const np = kind==="area" ? numProp(f.properties,/drval1|min/i) : depthProp(f.properties);
+      if (!np) return; const t = (kind==="area"?"≥ ":"")+fmt(Math.abs(np.v),1).replace(/\.0$/,"")+" m";
+      l.bindTooltip(t,{sticky:true});
+      const g=f.geometry;
+      if (kind!=="area" && g && (g.type==="LineString"||g.type==="MultiLineString") && labels<250){
+        const cs = g.type==="LineString"?g.coordinates:g.coordinates[0]; if(cs&&cs.length>3){ const c=cs[Math.floor(cs.length/2)];
+          L.tooltip({permanent:true,direction:"center",className:"dlbl"}).setLatLng([c[1],c[0]]).setContent(t).addTo(depthLayer); labels++; } }
+    }
+  }).addTo(depthLayer);
+}
 
 /* paikannus */
 let meMarker=null, meCircle=null, watchId=null, firstFix=true;
@@ -839,13 +956,44 @@ $("btnLocate").onclick = () => {
 
 /* ---------- asetukset ---------- */
 ["mmlKey","trafWfs","trafType","trafWms","clarity","species"].forEach(id=>{ const v=store.get("kp_"+id); if(v!==null) $(id).value=v; });
-["useMmlDepth","useTrafDepth"].forEach(id=>{ const v=store.get("kp_"+id); if(v!==null) $(id).checked = v==="1"; });
+["useSykeDepth","useMmlDepth","useTrafDepth"].forEach(id=>{ const v=store.get("kp_"+id); if(v!==null) $(id).checked = v==="1"; });
 function saveSettings(){
   ["mmlKey","trafWfs","trafType","trafWms","clarity","species"].forEach(id=>store.set("kp_"+id, $(id).value));
-  ["useMmlDepth","useTrafDepth"].forEach(id=>store.set("kp_"+id, $(id).checked?"1":"0"));
+  ["useSykeDepth","useMmlDepth","useTrafDepth"].forEach(id=>store.set("kp_"+id, $(id).checked?"1":"0"));
 }
-$("btnSave").onclick = () => { saveSettings(); setupMml(); };
-setupMml();
+$("btnSave").onclick = () => { saveSettings(); setupMml(); toast("Asetukset tallennettu."+($("mmlKey").value.trim()?" MML-maastokartan voi valita oikean yläkulman tasovalikosta.":""), 5000); };
+/* alapaneelit */
+let sheetOpen = null;
+function placeSheet(){ $("sheet").style.bottom = $("bottom").offsetHeight + "px"; }
+function openSheet(id){
+  if (sheetOpen === id){ closeSheet(); return; }
+  document.querySelectorAll(".sec").forEach(s=>s.classList.toggle("on", s.id===id));
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on", b.dataset.sheet===id));
+  $("sheetTitle").textContent = $(id).dataset.title; placeSheet(); $("sheet").hidden = false; sheetOpen = id;
+  $("sheet").querySelector(".sheet-body").scrollTop = 0;
+}
+function closeSheet(){ $("sheet").hidden = true; sheetOpen = null; document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("on")); }
+document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>openSheet(b.dataset.sheet));
+$("sheetClose").onclick = closeSheet;
+window.addEventListener("resize", ()=>{ placeSheet(); map.invalidateSize(); });
+setTimeout(()=>map.invalidateSize(), 100);
+document.addEventListener("keydown", e=>{ if(e.key!=="Escape") return; if(!$("modal").hidden) closeLureModal(); else if(sheetOpen) closeSheet(); });
+$("btnDiag").onclick = async () => {
+  const out = $("diagOut"); out.textContent = "Testataan…";
+  const tests = [
+    ["OpenStreetMap-tiili", sampleTileUrl(baseLayers["OpenStreetMap"])],
+    ["Esri-tiili", sampleTileUrl(baseLayers["Esri maastokartta"])],
+    ["OpenTopoMap-tiili", sampleTileUrl(baseLayers["OpenTopoMap"])],
+    ["Open-Meteo (sää)", "https://api.open-meteo.com/v1/forecast?latitude=61.5&longitude=23.8&current=temperature_2m"],
+    ["Overpass (vesialueet)", "https://overpass-api.de/api/status"],
+    ["SYKE WMS", SYKE_BASE+"/wms?service=WMS&request=GetCapabilities"]
+  ];
+  if (mmlLayer) tests.push(["MML-tiili", sampleTileUrl(mmlLayer)]);
+  const lines = ["Osoite: "+location.protocol+"//"+location.host+location.pathname, "Selain verkossa: "+(navigator.onLine?"kyllä":"ei"), "Taustakartta nyt: "+((Object.entries(baseLayers).find(([n,l])=>map.hasLayer(l))||[])[0] || (mmlLayer&&map.hasLayer(mmlLayer)?"MML Maastokartta":"ei mikään"))];
+  for (const [n,u] of tests){ lines.push(n+": "+await probe(u)); out.textContent = lines.join("\n"); }
+};
+$("btnClearCache").onclick = async () => { await cache.clear(); $("dataStatus").textContent = "Välimuisti tyhjennetty."; };
+setupMml(); initBase();
 
 $("btnWmsCaps").onclick = async () => {
   const base = $("trafWms").value.trim();
@@ -981,38 +1129,165 @@ function lureAdvice(sp, c, clarity, prof){
   const T = c.water, lowLight = c.sun<5 || c.cloud>80, bright = c.sun>20 && c.cloud<40;
   const ice = T!=null && T<1.5 && (c.month>=12 || c.month<=4);
   const deep = prof && prof.dmax>8;
-  let type, size, speed, tech;
+  let type, size, speed, tech, kinds;
   const cold = T<8, warm = T>=18;
   speed = T<6 ? "hyvin hidas, pitkät tauot" : T<12 ? "hidas–keskinopea" : "keskinopea–nopea, tempoa vaihdellen";
   if (ice){
     type = {hauki:"syöttikala tai iso tasapainopilkki", ahven:"pieni pilkki, tasapainopilkki tai mormyska", kuha:"tasapainopilkki, jigi pystysuoraan", taimen:"pieni lusikkapilkki pinnan läheltä", siika:"mormyska tai siikapilkki"}[sp];
+    kinds = {hauki:["tasapainopilkki"], ahven:["pilkki","tasapainopilkki","mormyska"], kuha:["tasapainopilkki","jigi"], taimen:["pilkki"], siika:["mormyska","pilkki"]}[sp];
     size="pieni–keskikokoinen"; tech="pilkintä, hiljainen nostelu ja pitkät paikallaanolot";
   } else switch(sp){
     case "hauki":
-      if (cold){ type="suspending-vaappu tai lusikka hitaasti, jigi kantin reunaan"; size="10–15 cm"; }
-      else if (warm){ type=lowLight?"pintauistin tai spinnerbait":"jerkki tai iso jigi kaislikon ja kantin reunaan"; size="12–20 cm"; }
-      else if (c.month>=9){ type="iso jigi tai jerkki, syvä vaappu kantin reunassa"; size="15–25 cm"; }
-      else { type="lusikka, lippa tai spinnerbait matalikolle"; size="10–15 cm"; }
+      if (cold){ type="suspending-vaappu tai lusikka hitaasti, jigi kantin reunaan"; kinds=["vaappu","lusikka","jigi"]; size="10–15 cm"; }
+      else if (warm){ type=lowLight?"pintauistin tai spinnerbait":"jerkki tai iso jigi kaislikon ja kantin reunaan"; kinds=lowLight?["pintauistin","spinnerbait"]:["jerkki","jigi"]; size="12–20 cm"; }
+      else if (c.month>=9){ type="iso jigi tai jerkki, syvä vaappu kantin reunassa"; kinds=["jigi","jerkki","vaappu"]; size="15–25 cm"; }
+      else { type="lusikka, lippa tai spinnerbait matalikolle"; kinds=["lusikka","lippa","spinnerbait"]; size="10–15 cm"; }
       tech = "heitto kasvillisuuden reunaan ja kantteihin"; break;
     case "ahven":
       type = cold ? "pieni jigi tai drop shot pohjan tuntumassa" : warm ? "lippa (koko 2–3), pieni vaappu tai jigi" : "pieni jigi, lippa tai drop shot";
+      kinds = cold ? ["jigi","dropshot"] : warm ? ["lippa","vaappu","jigi"] : ["jigi","lippa","dropshot"];
       size = "4–7 cm"; tech = "etsi parvi, heitä kivikoiden ja karikoiden reunoille"; break;
     case "kuha":
       type = lowLight ? "syvä vaappu uisteluun tai jigi pohjasta" : "jigi pohjan tuntumaan kantin reunassa";
+      kinds = lowLight ? ["vaappu","jigi"] : ["jigi"];
       size = "8–12 cm"; tech = "pohjakosketus, syvänteen reunat; hämärä ja yö parhaita"; break;
     case "taimen":
       type = (T>15) ? "syväuistelu: lusikka tai vaappu syvyydenpitimellä" : "kapea lusikka, lippa tai ohut minnow-vaappu pinnan alla";
+      kinds = (T>15) ? ["lusikka","vaappu"] : ["lusikka","lippa","vaappu"];
       size = "7–12 cm"; tech = (T>15) ? "uistelu ulapalla lämpökerroksen alapuolella" : "heitto niemenkärjistä, virtapaikoista ja jokisuilta"; break;
     case "siika":
-      type = "ei varsinaisesti uistinkala: mormyska, siikapilkki tai siikaperho"; size="pieni"; tech="pohjan läheltä hiljainen nostelu tai perhokalastus pintaan"; break;
+      type = "ei varsinaisesti uistinkala: mormyska, siikapilkki tai siikaperho"; kinds=["mormyska","pilkki"]; size="pieni"; tech="pohjan läheltä hiljainen nostelu tai perhokalastus pintaan"; break;
   }
-  let col;
-  if (clarity==="kirkas") col = lowLight ? "hopea tai valkoinen, hämärässä musta siluetti" : bright ? "luonnonvärit (särki, ahven), läpikuultava, hopea" : "hopea, sininen–hopea, luonnonvärit";
-  else if (clarity==="humus") col = lowLight ? "oranssi, keltainen, chartreuse tai firetiger" : bright ? "kulta, kupari tai ruskea–oranssi" : "kulta, kupari, oranssi tai firetiger";
-  else col = lowLight ? "musta siluetti tai glow/UV" : "chartreuse, fluo-oranssi tai valkoinen, voimakas kontrasti ja ääni tai värinä";
-  if (deep && !lowLight) col += "; syvällä (>8 m) UV- tai fluoväri erottuu paremmin";
-  return `<div class="card"><div class="kv"><b>Viehe</b><span>${type}</span><b>Koko</b><span>${size}</span><b>Väri</b><span>${col}</span><b>Uitto</b><span>${speed}</span><b>Taktiikka</b><span>${tech}</span>${prof?`<b>Syvyys</b><span>${prof.dmin}–${prof.dmax} m (${prof.phase})</span>`:""}</div></div>`;
+  let col, cols, why;
+  if (clarity==="kirkas"){
+    col = lowLight ? "hopea tai valkoinen, hämärässä musta siluetti" : bright ? "luonnonvärit (särki, ahven), läpikuultava, hopea" : "hopea, sininen–hopea, luonnonvärit";
+    cols = lowLight ? ["hopea","valkoinen","musta"] : bright ? ["sarki","ahven","lapikuultava","hopea"] : ["hopea","sininenhopea","sarki"];
+    why = lowLight ? "Kirkkaassa vedessä hämärällä kala näkee parhaiten vaalean heijastuksen tai tumman siluetin pintaa vasten." : "Kirkkaassa vedessä kala näkee vieheen tarkasti, joten luonnolliset ja hillityt värit toimivat parhaiten.";
+  } else if (clarity==="humus"){
+    col = lowLight ? "oranssi, keltainen, chartreuse tai firetiger" : bright ? "kulta, kupari tai ruskea–oranssi" : "kulta, kupari, oranssi tai firetiger";
+    cols = lowLight ? ["oranssi","keltainen","chartreuse","firetiger"] : bright ? ["kulta","kupari","ruskeaoranssi"] : ["kulta","kupari","oranssi","firetiger"];
+    why = "Ruskea humusvesi suodattaa sinisen valon, jolloin keltaiset, oranssit ja kullanväriset sävyt erottuvat parhaiten. Hämärässä tarvitaan kirkkaampia ja kontrastisempia värejä.";
+  } else {
+    col = lowLight ? "musta siluetti tai glow/UV" : "chartreuse, fluo-oranssi tai valkoinen, voimakas kontrasti ja ääni tai värinä";
+    cols = lowLight ? ["musta","glow"] : ["chartreuse","fluooranssi","valkoinen"];
+    why = "Sameassa vedessä näkyvyys on lyhyt, joten viehe kannattaa valita voimakkaan kontrastin ja värinän perusteella. Hämärässä musta siluetti tai hohtava pinta erottuu parhaiten.";
+  }
+  if (deep && !lowLight){ col += "; syvällä (>8 m) UV- tai fluoväri erottuu paremmin"; cols = cols.concat(["uv"]); }
+  lastLure = {sp, kinds, cols, size, why, type};
+  return `<div class="card"><div class="kv"><b>Viehe</b><span>${type}</span><b>Koko</b><span>${size}</span><b>Väri</b><span>${col}</span><b>Uitto</b><span>${speed}</span><b>Taktiikka</b><span>${tech}</span>${prof?`<b>Syvyys</b><span>${prof.dmin}–${prof.dmax} m (${prof.phase})</span>`:""}</div>`+
+    `<button class="infobtn" type="button" onclick="openLureModal()">ⓘ Näytä vieheet ja värit kuvina</button></div>`;
 }
+
+/* ---------- viehekuvat (havainnekuvia, eivät esitä tiettyjä tuotteita) ---------- */
+let lastLure = null;
+// back = selkä, side = kylki, belly = vatsa, stripes = raitojen väri, metal = metallinen kiilto, glow = hohde
+const LURE_COLORS = {
+  hopea:        {name:"Hopea", back:"#6f7c88", side:"#e9eef2", belly:"#ffffff", metal:true},
+  sininenhopea: {name:"Sininen–hopea", back:"#1f5aa6", side:"#dfe7ee", belly:"#ffffff", metal:true},
+  kulta:        {name:"Kulta", back:"#a37406", side:"#f2c94c", belly:"#fff1b8", metal:true},
+  kupari:       {name:"Kupari", back:"#7a3b1c", side:"#c8743f", belly:"#f6c39b", metal:true},
+  oranssi:      {name:"Oranssi", back:"#d35400", side:"#ff8a1f", belly:"#ffd2a1"},
+  keltainen:    {name:"Keltainen", back:"#e0b400", side:"#ffe14d", belly:"#fff6b3"},
+  chartreuse:   {name:"Chartreuse", back:"#8fbf00", side:"#d4ff2a", belly:"#f4ffb0"},
+  firetiger:    {name:"Firetiger", back:"#1f7a2e", side:"#b8e000", belly:"#ff6a00", stripes:"#123d18"},
+  ruskeaoranssi:{name:"Ruskea–oranssi", back:"#5a2e14", side:"#b85c25", belly:"#ffb066"},
+  musta:        {name:"Musta", back:"#000000", side:"#1d1d1d", belly:"#3a3a3a"},
+  valkoinen:    {name:"Valkoinen", back:"#c8ccd0", side:"#fafafa", belly:"#ffffff"},
+  sarki:        {name:"Luonnonväri (särki)", back:"#3f5463", side:"#cfd8de", belly:"#ffffff", metal:true, accent:"#d0342c"},
+  ahven:        {name:"Luonnonväri (ahven)", back:"#3b5226", side:"#b7c25e", belly:"#f3efcf", stripes:"#2b3a1c", accent:"#ff7a1a"},
+  lapikuultava: {name:"Läpikuultava", back:"#9fb4c4", side:"#dfe9f0", belly:"#f4f8fb", alpha:.55},
+  fluooranssi:  {name:"Fluo-oranssi", back:"#ff3d00", side:"#ff7b00", belly:"#ffc266"},
+  glow:         {name:"Glow (hohtava)", back:"#bfe8a8", side:"#ecffe0", belly:"#ffffff", glow:"#9dff6a"},
+  uv:           {name:"UV / fluo", back:"#7b2ff7", side:"#d9a6ff", belly:"#ffe0ff", glow:"#c77dff"}
+};
+const LURE_KINDS = {
+  lusikka:"Lusikka", lippa:"Lippa", vaappu:"Vaappu", jerkki:"Jerkki", jigi:"Jigi (kumikala)", pintauistin:"Pintauistin",
+  spinnerbait:"Spinnerbait", dropshot:"Drop shot", pilkki:"Pilkki", tasapainopilkki:"Tasapainopilkki", mormyska:"Mormyska"
+};
+const LURE_DESC = {
+  lusikka:"Heiluva metallilevy. Monipuolinen heitto- ja uisteluviehe.",
+  lippa:"Pyörivä lapa akselin ympärillä. Värisee ja välkkyy jo hitaassa uitossa.",
+  vaappu:"Kalan muotoinen viehe, jonka nokkalippa määrää uintisyvyyden.",
+  jerkki:"Lipaton, nykäisyillä sivulle liukuva viehe haukikalastukseen.",
+  jigi:"Painotettu jigipää ja pehmeä kumikala, uitetaan pohjan tuntumassa.",
+  pintauistin:"Pinnassa kulkeva viehe, joka toimii tyynellä hämärässä.",
+  spinnerbait:"V-muotoinen lanka, lapa ja helmahame. Kulkee kasvillisuuden läpi.",
+  dropshot:"Koukku siimassa painon yläpuolella, pieni kumikala pidetään paikallaan.",
+  pilkki:"Pystysuoraan nosteltava metallipilkki.",
+  tasapainopilkki:"Vaakatasossa liikkuva pilkki, joka kiertää ympyrää nostossa.",
+  mormyska:"Pieni painava pilkki, jota värisytetään hiljaa pohjan lähellä."
+};
+let lureSvgId = 0;
+function lureSVG(kind, ck){
+  const s = LURE_COLORS[ck], id = "lr"+(lureSvgId++), a = s.alpha||1;
+  const grad = `<linearGradient id="${id}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.back}" stop-opacity="${a}"/><stop offset=".45" stop-color="${s.side}" stop-opacity="${a}"/><stop offset="1" stop-color="${s.belly}" stop-opacity="${a}"/></linearGradient>`+
+    `<linearGradient id="${id}m" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${s.side}"/><stop offset=".35" stop-color="${s.belly}"/><stop offset=".55" stop-color="${s.side}"/><stop offset="1" stop-color="${s.back}"/></linearGradient>`+
+    (s.glow ? `<filter id="${id}f" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="2.4" result="b"/><feFlood flood-color="${s.glow}"/><feComposite in2="b" operator="in"/><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>` : "");
+  const fl = s.glow ? ` filter="url(#${id}f)"` : "";
+  const OL = `stroke="rgba(0,0,0,.45)" stroke-width="1"`;
+  const metalFill = s.metal ? `url(#${id}m)` : `url(#${id}g)`;
+  const stripes = (d)=> s.stripes ? `<clipPath id="${id}c"><path d="${d}"/></clipPath><g clip-path="url(#${id}c)" fill="${s.stripes}" opacity=".75">${[0,1,2,3,4,5].map(i=>`<path d="M${30+i*11},0 l5,0 l-3,60 l-5,0z"/>`).join("")}</g>` : "";
+  const body = (d, fill)=> `<path d="${d}" fill="${fill||`url(#${id}g)`}" ${OL}${fl}/>`+stripes(d);
+  const eye = (x,y,r=3.2)=> `<circle cx="${x}" cy="${y}" r="${r}" fill="${s.accent?"#fff4c2":"#fff"}" stroke="#222" stroke-width=".6"/><circle cx="${x}" cy="${y}" r="${r*.5}" fill="#111"/>`;
+  const hookC = `fill="none" stroke="#555" stroke-width="1.4" stroke-linecap="round"`;
+  const trebleR = (x,y)=> `<circle cx="${x+2.5}" cy="${y}" r="2.5" fill="none" stroke="#777" stroke-width="1.2"/><path d="M${x+5},${y} L${x+15},${y} M${x+15},${y} C${x+20},${y} ${x+21},${y-6} ${x+17},${y-8} M${x+15},${y} C${x+20},${y} ${x+21},${y+6} ${x+17},${y+8} M${x+15},${y} C${x+19},${y+1} ${x+20},${y+3} ${x+18},${y+5}" ${hookC}/>`;
+  const trebleD = (x,y)=> `<circle cx="${x}" cy="${y+2.5}" r="2.5" fill="none" stroke="#777" stroke-width="1.2"/><path d="M${x},${y+5} L${x},${y+14} M${x},${y+14} C${x},${y+19} ${x-6},${y+20} ${x-8},${y+16} M${x},${y+14} C${x},${y+19} ${x+6},${y+20} ${x+8},${y+16} M${x},${y+14} C${x+1},${y+18} ${x+3},${y+19} ${x+4},${y+17}" ${hookC}/>`;
+  const line = (x1,y1,x2,y2)=> `<path d="M${x1},${y1} L${x2},${y2}" stroke="#9aa" stroke-width=".8" stroke-dasharray="2 2"/>`;
+  let g = "";
+  switch(kind){
+    case "lusikka": { const d="M12,30 C14,17 46,13 74,19 C92,23 98,27 98,30 C98,33 92,37 74,41 C46,47 14,43 12,30Z";
+      g = line(0,30,10,30)+body(d, s.metal?metalFill:null)+`<circle cx="16" cy="30" r="1.8" fill="#fff" stroke="#555" stroke-width=".8"/>`+trebleR(98,30); break; }
+    case "pilkki": { const d="M12,30 C20,23 70,22 96,27 L96,33 C70,38 20,37 12,30Z";
+      g = line(0,30,10,30)+body(d, s.metal?metalFill:null)+trebleD(98,30); break; }
+    case "lippa": { g = `<path d="M2,32 L82,32" stroke="#666" stroke-width="1.2"/>`+
+      `<ellipse cx="30" cy="22" rx="17" ry="8.5" transform="rotate(-12 30 22)" fill="${s.metal?metalFill:`url(#${id}g)`}" ${OL}${fl}/>`+
+      `<path d="M18,32 C20,28 22,27 24,26" stroke="#666" stroke-width="1" fill="none"/>`+
+      `<circle cx="47" cy="32" r="3.2" fill="${s.back}" ${OL}/><circle cx="55" cy="32" r="4.4" fill="${s.side}" ${OL}/><path d="M60,28 L76,29 L76,35 L60,36Z" fill="url(#${id}g)" ${OL}/>`+trebleR(78,32); break; }
+    case "vaappu": { const d="M20,30 C24,20 50,18 80,22 C92,24 100,27 102,30 C100,34 92,37 80,38 C50,42 24,40 20,30Z";
+      g = line(0,33,8,35)+`<path d="M20,28 L5,35 L9,39 L21,33Z" fill="rgba(210,225,235,.75)" stroke="rgba(0,0,0,.4)" stroke-width=".8"/>`+body(d)+eye(29,27)+trebleD(52,39)+trebleR(100,30); break; }
+    case "jerkki": { const d="M10,30 C12,16 50,12 86,20 C98,23 104,27 106,30 C104,34 98,37 86,40 C50,48 12,44 10,30Z";
+      g = body(d)+eye(21,27,3.6)+trebleD(50,44)+trebleR(104,30); break; }
+    case "pintauistin": { const d="M10,30 C10,22 30,20 60,20 C90,20 104,24 106,30 C104,36 90,40 60,40 C30,40 10,38 10,30Z";
+      g = `<path d="M0,22 L118,22" stroke="#7fb3d5" stroke-width=".8"/>`+body(d)+eye(19,27)+trebleD(40,39)+trebleD(80,39)+trebleR(104,30); break; }
+    case "jigi": { const d="M28,25 C46,21 70,23 84,27 L84,33 C70,37 46,39 28,35Z", tail="M84,27 C92,18 101,21 103,30 C101,39 92,42 84,33Z";
+      g = line(0,26,12,27)+body(d)+`<path d="${tail}" fill="url(#${id}g)" ${OL}${fl}/>`+
+      `<circle cx="20" cy="30" r="9.5" fill="#6b6b6b" stroke="rgba(0,0,0,.5)"/>`+eye(17,28,2.6)+
+      `<path d="M28,30 L56,30 C60,30 61,24 57,21" ${hookC}/>`; break; }
+    case "spinnerbait": { g = `<path d="M6,42 L40,42 L82,16" fill="none" stroke="#666" stroke-width="1.4"/>`+
+      `<ellipse cx="90" cy="13" rx="13" ry="6.5" transform="rotate(-25 90 13)" fill="${s.metal?metalFill:`url(#${id}g)`}" ${OL}${fl}/>`+
+      [0,1,2,3,4,5,6,7].map(i=>`<path d="M44,42 C58,${38+i} 70,${36+i*1.6} 80,${33+i*2.2}" stroke="${[s.back,s.side,s.belly][i%3]}" stroke-width="2.2" fill="none"/>`).join("")+
+      `<circle cx="40" cy="42" r="6" fill="${s.side}" ${OL}/>`+eye(38,41,2)+`<path d="M44,42 L74,42 C78,42 79,36 75,34" ${hookC}/>`; break; }
+    case "dropshot": { const d="M64,17 C80,11 98,15 114,23 C98,28 80,29 64,26Z";
+      g = `<path d="M58,0 L58,50" stroke="#9aa" stroke-width=".9"/>`+`<ellipse cx="58" cy="54" rx="4" ry="5" fill="#777"/>`+
+      `<path d="M58,22 L66,22 C70,22 71,17 67,15" ${hookC}/>`+body(d); break; }
+    case "tasapainopilkki": { const d="M14,30 C18,22 50,20 78,24 L80,36 C50,40 18,38 14,30Z", fin="M78,24 L96,16 L92,30 L96,44 L80,36Z";
+      g = `<path d="M48,8 L48,21" stroke="#9aa" stroke-width=".8" stroke-dasharray="2 2"/><circle cx="48" cy="22" r="1.8" fill="none" stroke="#777"/>`+
+      `<path d="${fin}" fill="${s.accent||"rgba(200,40,40,.85)"}" ${OL}/>`+body(d)+eye(23,28)+
+      `<path d="M14,30 L5,30 C1,30 1,24 5,23" ${hookC}/><path d="M92,30 L100,30 C104,30 104,24 100,23" ${hookC}/>`+trebleD(46,37); break; }
+    case "mormyska": { const d="M34,30 C34,17 60,15 74,24 C80,28 80,32 74,36 C60,45 34,43 34,30Z";
+      g = line(10,30,32,30)+body(d, s.metal?metalFill:null)+`<circle cx="39" cy="30" r="1.6" fill="#fff" stroke="#555" stroke-width=".7"/>`+
+      `<path d="M40,30 L92,30 C98,30 99,22 93,20" ${hookC}/>`; break; }
+  }
+  return `<svg viewBox="0 0 120 66" width="120" height="66" role="img" aria-label="${LURE_KINDS[kind]}, ${s.name}"><defs>${grad}</defs>${g}</svg>`;
+}
+function swatchSVG(ck){
+  const s = LURE_COLORS[ck], id = "sw"+(lureSvgId++);
+  return `<svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.back}"/><stop offset=".5" stop-color="${s.side}"/><stop offset="1" stop-color="${s.belly}"/></linearGradient></defs>`+
+    `<circle cx="14" cy="14" r="12" fill="url(#${id})" stroke="rgba(0,0,0,.35)"/>${s.stripes?`<path d="M9,3 l3,0 l-2,22 l-3,0z M16,3 l3,0 l-2,22 l-3,0z" fill="${s.stripes}" opacity=".7"/>`:""}${s.glow?`<circle cx="14" cy="14" r="13" fill="none" stroke="${s.glow}" stroke-width="2" opacity=".8"/>`:""}</svg>`;
+}
+function openLureModal(){
+  if (!lastLure) return;
+  const L0 = lastLure, sp = $("species").selectedOptions[0].textContent, cl = $("clarity").selectedOptions[0].textContent;
+  const kindsHtml = L0.kinds.map(k=>`<section class="lk"><h3>${LURE_KINDS[k]}</h3><p class="small">${LURE_DESC[k]}</p>`+
+     `<div class="lrow">${L0.cols.map(ck=>`<figure>${lureSVG(k,ck)}<figcaption>${LURE_COLORS[ck].name}</figcaption></figure>`).join("")}</div></section>`).join("");
+  $("modalBody").innerHTML = `<h2 id="modalTitle" style="margin-top:0">Vieheet: ${sp}, ${cl.toLowerCase()}</h2>`+
+    `<p class="small">Koko ${L0.size}. ${L0.why}</p>`+
+    `<div class="swrow">${L0.cols.map(ck=>`<span class="sw">${swatchSVG(ck)}${LURE_COLORS[ck].name}</span>`).join("")}</div>`+
+    kindsHtml+
+    `<p class="small" style="margin-top:12px">Kuvat ovat havainnekuvia, eivätkä ne esitä tiettyjä tuotteita. Värit näyttävät erilaisilta vedessä kuin näytöllä, koska vesi suodattaa valoa.</p>`;
+  const m = $("modal"); m.hidden = false; document.body.style.overflow = "hidden"; $("modalClose").focus();
+}
+function closeLureModal(){ $("modal").hidden = true; document.body.style.overflow = ""; }
 
 /* ---------- geometria ---------- */
 function makeProj(lat0, lon0){
@@ -1056,23 +1331,64 @@ function ringCrossings(rings, y){
 }
 
 /* ---------- aineistohaut ---------- */
+/* ---------- välimuisti (IndexedDB, varalla muisti) ---------- */
+const cache = (() => {
+  const mem = new Map(); let dbp = null;
+  function db(){ if (!dbp) dbp = new Promise((res,rej)=>{ try { const r=indexedDB.open("kalapaikat",1);
+      r.onupgradeneeded=()=>r.result.createObjectStore("c"); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); } catch(e){ rej(e); } });
+    return dbp; }
+  const tx = (mode, fn) => db().then(d=>new Promise((res,rej)=>{ const t=d.transaction("c",mode); const s=t.objectStore("c"); const r=fn(s); t.oncomplete=()=>res(r&&r.result); t.onerror=()=>rej(t.error); }));
+  return {
+    async keys(){ try { return await tx("readonly", s=>s.getAllKeys()); } catch(e){ return [...mem.keys()]; } },
+    async get(k){ try { const v = await tx("readonly", s=>s.get(k)); return v!==undefined ? v : mem.get(k); } catch(e){ return mem.get(k); } },
+    async set(k,v){ mem.set(k,v); try { await tx("readwrite", s=>s.put(v,k)); } catch(e){} },
+    async del(k){ mem.delete(k); try { await tx("readwrite", s=>s.delete(k)); } catch(e){} },
+    async clear(){ mem.clear(); try { await tx("readwrite", s=>s.clear()); } catch(e){} }
+  };
+})();
+// avain: prefix|aikaleima|s|w|n|e
+async function cacheFind(prefix, b, maxAgeMs){
+  const now = Date.now(); const ks = (await cache.keys()).filter(k=>String(k).startsWith(prefix+"|"));
+  let hit = null;
+  for (const k of ks){ const [,t,s,w,n,e] = String(k).split("|"); const tt=+t;
+    if (now-tt > maxAgeMs){ cache.del(k); continue; }
+    if (+s<=b.getSouth() && +w<=b.getWest() && +n>=b.getNorth() && +e>=b.getEast() && (!hit || tt>hit.t)) hit = {k, t:tt}; }
+  if (!hit) return null; const v = await cache.get(hit.k); return v ? {data:v, ageMin:Math.round((now-hit.t)/60000)} : null;
+}
+async function cacheStore(prefix, bb, data){
+  const ks = (await cache.keys()).filter(k=>String(k).startsWith(prefix+"|")).sort();
+  while (ks.length >= 12) await cache.del(ks.shift());
+  await cache.set([prefix, Date.now(), bb.s, bb.w, bb.n, bb.e].join("|"), data);
+}
+// haettava alue: näkymä + 25 % reunavara joka suuntaan, pyöristettynä ulospäin
+function padBounds(b, f=.15){
+  const dy=(b.getNorth()-b.getSouth())*f, dx=(b.getEast()-b.getWest())*f, r=v=>Math.round(v*1e4)/1e4;
+  return {s:r(b.getSouth()-dy), w:r(b.getWest()-dx), n:r(b.getNorth()+dy), e:r(b.getEast()+dx)};
+}
+
 const OVERPASS = ["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"];
 async function loadOSM(b){
-  const bb = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  const c = await cacheFind("osm", b, 14*24*3600e3); if (c) return {...c.data, _cached:c.ageMin};
+  const pb = padBounds(b); const bb = `${pb.s},${pb.w},${pb.n},${pb.e}`;
   const q = `[out:json][timeout:60];(way["natural"="water"](${bb});relation["natural"="water"](${bb});way["waterway"="riverbank"](${bb});way["natural"="coastline"](${bb});way["waterway"~"^(river|stream)$"](${bb}););out geom;`;
   let lastErr;
   for (const u of OVERPASS){
-    try { return await fetchJSON(u, {method:"POST", body:"data="+encodeURIComponent(q), headers:{"Content-Type":"application/x-www-form-urlencoded"}}, 90000); }
+    try { const j = await fetchJSON(u, {method:"POST", body:"data="+encodeURIComponent(q), headers:{"Content-Type":"application/x-www-form-urlencoded"}}, 60000);
+      cacheStore("osm", pb, j); return j; }
     catch(e){ lastErr=e; }
   }
   throw lastErr;
 }
 async function loadMmlDepth(b, key){
+  const c = await cacheFind("mml", b, 30*24*3600e3); if (c) return {...c.data, _cached:c.ageMin};
+  const r = await loadMmlDepthNet(padBounds(b), key); if (r.features.length || r.ok) cacheStore("mml", r.bb, {features:r.features, note:r.note}); return r;
+}
+async function loadMmlDepthNet(pb, key){
   const base = "https://avoin-paikkatieto.maanmittauslaitos.fi/maastotiedot/features/v1";
   const cols = await fetchJSON(`${base}/collections?f=json&api-key=${encodeURIComponent(key)}`);
   const ids = (cols.collections||[]).map(c=>c.id).filter(id=>/syvyys/i.test(id));
-  if (!ids.length) return {features:[], note:"MML:n kokoelmista ei löytynyt syvyystasoja"};
-  const feats=[]; const bbox=`${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`;
+  if (!ids.length) return {features:[], note:"MML:n kokoelmista ei löytynyt syvyystasoja", bb:pb};
+  const feats=[]; const bbox=`${pb.w},${pb.s},${pb.e},${pb.n}`;
   for (const id of ids){
     let url = `${base}/collections/${id}/items?f=json&limit=10000&bbox=${bbox}&api-key=${encodeURIComponent(key)}`;
     for (let page=0; page<5 && url; page++){
@@ -1081,7 +1397,35 @@ async function loadMmlDepth(b, key){
       const nx = (j.links||[]).find(l=>l.rel==="next"); url = nx ? nx.href + (nx.href.includes("api-key")?"":"&api-key="+encodeURIComponent(key)) : null;
     }
   }
-  return {features:feats, note:"MML-kokoelmat: "+ids.join(", ")};
+  return {features:feats, note:"MML-kokoelmat: "+ids.join(", "), ok:true, bb:pb};
+}
+/* SYKE: järvien ja jokien syvyysaineisto (CC BY 4.0, ei avainta) */
+function swapIfLatLon(features){
+  // GeoJSON-järjestys on lon,lat. Suomessa lat > 45 ja lon < 35, joten väärä järjestys on helppo tunnistaa.
+  const first = f => { let c=f.geometry&&f.geometry.coordinates; while (Array.isArray(c)&&Array.isArray(c[0])) c=c[0]; return c; };
+  const c = features.length ? first(features[0]) : null;
+  if (!c || !(c[0] > 45 && c[1] < 40)) return features;
+  const sw = a => Array.isArray(a[0]) ? a.map(sw) : [a[1],a[0]];
+  features.forEach(f=>{ if (f.geometry) f.geometry.coordinates = sw(f.geometry.coordinates); });
+  return features;
+}
+async function loadSykeDepth(b){
+  const c = await cacheFind("syke", b, 30*24*3600e3); if (c) return {...c.data, _cached:c.ageMin};
+  const pb = padBounds(b), feats=[];
+  for (const t of ["EL.ContourLine","EL.SpotElevation"]){
+    const url = `${SYKE_BASE}/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=inspire_el:${t}&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=20000&bbox=${pb.w},${pb.s},${pb.e},${pb.n},EPSG:4326`;
+    const j = await fetchJSON(url, {}, 60000);
+    swapIfLatLon(j.features||[]).forEach(f=>{ f._col=t; feats.push(f); });
+  }
+  const r = {features:feats, note:`SYKE järvien syvyysaineisto: ${feats.length} kohdetta`};
+  cacheStore("syke", pb, r); return r;
+}
+// syvyysominaisuuden valinta: tarkat nimet ensin, jotta järven keski- tai maksimisyvyyttä ei käytetä käyrän arvona
+function depthProp(props){
+  const order = [/^syvyyskayra_m$/i, /^syvyys_m$/i, /^syvyysarvo$/i, /syvyyskayra/i, /^(value|arvo|elevation|propertyvalue)$/i];
+  for (const re of order){ const n = numProp(props, re); if (n) return n; }
+  for (const [k,v] of Object.entries(props||{})){ if (/syvyys|depth/i.test(k) && !/keski|suurin|max|mean|tunnus|id$/i.test(k)){ const n=parseFloat(v); if(!isNaN(n)) return {k, v:n}; } }
+  return null;
 }
 async function loadTrafDepth(b){
   const base = $("trafWfs").value.trim(); let type = $("trafType").value.trim();
@@ -1101,23 +1445,80 @@ function numProp(props, re){
   return null;
 }
 
+/* ---------- edistymisympyrä ---------- */
+// Vaiheiden kestot opitaan aiemmista ajoista (liukuva keskiarvo). Ensimmäisellä kerralla käytetään oletuksia.
+const PHASES = {fetch:["Aineistojen haku",15], grid:["Ruudukon laskenta",2], traf:["Traficom-syvyysalueet",6], score:["Pisteytys",1]};
+const prog = (() => {
+  const el = document.createElement("div"); el.id="prog";
+  el.innerHTML = `<div class="box"><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--line)" stroke-width="7"/>
+    <circle id="progArc" cx="32" cy="32" r="27" fill="none" stroke="var(--acc)" stroke-width="7" stroke-linecap="round" transform="rotate(-90 32 32)" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
+    <text id="progPct" x="32" y="37" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor">0%</text></svg>
+    <div class="pt"><b id="progPhase">Aloitetaan…</b><br><span id="progTime"></span></div></div>`;
+  map.getContainer().appendChild(el);
+  let hist={}; try { hist = JSON.parse(store.get("kp_phase2")||"{}"); } catch(e){}
+  let plan=[], idx=-1, t0=0, tPhase=0, timer=null, learned=false, lbl=null;
+  const exp = k => hist[k] || PHASES[k][1];
+  function draw(){
+    const now=performance.now(), el1=(now-tPhase)/1000;
+    let done=0, total=0; plan.forEach((k,i)=>{ total+=exp(k); if(i<idx) done+=exp(k); });
+    const cur = plan[idx]; const curExp = cur?exp(cur):0;
+    const within = cur ? Math.min(el1, curExp*0.95) : 0;
+    const frac = total ? (done+within)/total : 0;
+    let rem = 0; plan.forEach((k,i)=>{ if(i>idx) rem+=exp(k); }); rem += Math.max(curExp-el1, 0);
+    const over = cur && el1>curExp;
+    $("progArc").setAttribute("stroke-dashoffset", (169.6*(1-frac)).toFixed(1));
+    $("progPct").textContent = Math.round(frac*100)+"%";
+    $("progPhase").textContent = cur ? ((cur==="fetch"&&lbl)||PHASES[cur][0])+" ("+(idx+1)+"/"+plan.length+")" : "";
+    $("progTime").textContent = "Kulunut "+Math.round((now-t0)/1000)+" s · "+
+      (over ? "vaihe kestää arvioitua pidempään" : "jäljellä noin "+Math.max(1,Math.round(rem))+" s"+(learned?"":" (alustava arvio)"));
+  }
+  return {
+    start(p){ plan=p; idx=-1; lbl=null; t0=tPhase=performance.now(); learned=Object.keys(hist).length>0; el.style.display="flex"; clearInterval(timer); timer=setInterval(draw,250); },
+    phase(k){ const now=performance.now(); if(idx>=0 && plan[idx]) { const d=(now-tPhase)/1000; const o=plan[idx]; hist[o]= hist[o] ? hist[o]*0.6+d*0.4 : d; }
+      const j=plan.indexOf(k); idx = j>=0 ? j : idx; tPhase=now; draw(); return new Promise(r=>setTimeout(r,30)); },
+    label(t){ lbl=t; },
+    insert(k){ if(!plan.includes(k)) plan.splice(plan.length-1,0,k); draw(); },
+    skip(k){ const j=plan.indexOf(k); if(j>idx){ plan.splice(j,1); } draw(); },
+    end(ok){ if(ok && idx>=0 && plan[idx]){ const d=(performance.now()-tPhase)/1000; const o=plan[idx]; hist[o]= hist[o]? hist[o]*0.6+d*0.4 : d; }
+      store.set("kp_phase2", JSON.stringify(hist)); clearInterval(timer); el.style.display="none"; }
+  };
+})();
+
 /* ---------- analyysi ---------- */
 let grid = null; // {nx, ny, b, cellW, cellH, cells:[{water,depth,shoreD,shoreBear,drop,mouthD}], depthSrc}
 async function analyze(){
   const z = map.getZoom();
   const st = $("dataStatus"); const log=[]; const say = s=>{ log.push(s); st.textContent=log.join("\n"); };
-  saveSettings();
+  saveSettings(); depthLayer.clearLayers(); areaBtn.style.display = "none";
   const c0 = map.getCenter();
-  say("Haetaan säätietoja…");
-  try { await loadWeather(c0.lat, c0.lng); say("Sää: Open-Meteo ✓"); }
-  catch(e){ say("⚠ Sään haku epäonnistui: "+e.message); }
+  const useMml = $("useMmlDepth").checked && !!$("mmlKey").value.trim(), useTraf = $("useTrafDepth").checked, useSyke = $("useSykeDepth").checked;
+  // analysoitava alue = näkymä + 30 % reunavara joka suuntaan; aineistot haetaan vielä 15 % laajemmalta alueelta
+  const AREA_PAD = .30;
+  const pv = padBounds(map.getBounds(), AREA_PAD), b = L.latLngBounds([pv.s,pv.w],[pv.n,pv.e]);
+  const lat0=c0.lat, lon0=c0.lng, P = makeProj(lat0, lon0);
+  const key = $("mmlKey").value.trim();
+  const full = z>=13;
+  const plan = ["fetch"]; if (full){ plan.push("grid"); if(!useMml && !useSyke && useTraf) plan.push("traf"); plan.push("score"); }
+  prog.start(plan); await prog.phase("fetch");
+  // haut rinnakkain: kokonaisaika = hitaimman haun kesto, ei summa
+  const timing = {}; const pending = new Set();
+  const timed = (name, p) => { const t=performance.now(); pending.add(name); prog.label("Haetaan: "+[...pending].join(", "));
+    return p.then(v=>({ok:true,v}), e=>({ok:false,e})).then(r=>{ timing[name]=(performance.now()-t)/1000; pending.delete(name);
+      prog.label(pending.size ? "Haetaan: "+[...pending].join(", ") : "Haut valmiit"); return r; }); };
+  say(full ? "Haetaan sää, vesialueet"+(useSyke||useMml?" ja syvyyskäyrät":"")+" rinnakkain…" : "Haetaan säätietoja…");
+  const pW = timed("sää", loadWeather(c0.lat, c0.lng));
+  const pO = full ? timed("OSM", loadOSM(b)) : null;
+  const pM = full && useMml ? timed("MML", loadMmlDepth(b, key)) : null;
+  const pS = full && useSyke ? timed("SYKE", loadSykeDepth(b)) : null;
+  const rW = await pW;
+  if (rW.ok) say("Sää: Open-Meteo ✓"); else say("⚠ Sään haku epäonnistui: "+rW.e.message);
   renderConditions();
-  if (z < 13){ say("Zoomaa lähemmäs (taso ≥13) karttaruudukon laskemiseksi. Nyt taso "+z+"."); return; }
-
-  const b = map.getBounds(), lat0=c0.lat, lon0=c0.lng, P = makeProj(lat0, lon0);
-  say("Haetaan vesialueet ja rantaviivat (OpenStreetMap / Overpass)…");
-  let osm;
-  try { osm = await loadOSM(b); } catch(e){ say("⚠ OSM-haku epäonnistui: "+e.message); return; }
+  const report = () => say("Kestot: "+Object.entries(timing).map(([k,v])=>k+" "+v.toFixed(1)+" s").join(", "));
+  if (!full){ report(); say("Zoomaa lähemmäs (taso ≥13) karttaruudukon laskemiseksi. Nyt taso "+z+"."); toast("Sää päivitetty. Zoomaa lähemmäs vesialueelle, niin kartta-arvio voidaan laskea."); return; }
+  const rO = await pO;
+  if (!rO.ok){ report(); say("⚠ OSM-haku epäonnistui: "+rO.e.message); toast("Vesialueiden haku epäonnistui ("+rO.e.message+"). Yritä hetken päästä uudelleen."); return; }
+  const osm = rO.v;
+  if (osm._cached!=null) say(`OSM: välimuistista (${osm._cached} min vanha)`);
   // rakenna vesirenkaat, rantasegmentit ja jokisuut
   const waterRings=[], coastSegs=[], segs=[], streams=[];
   const toXY = g => g.map(p=>P.fwd(p.lat,p.lon));
@@ -1139,8 +1540,9 @@ async function analyze(){
   say(`OSM: ${rings.length} vesialueen reunaa, ${coastSegs.length} rannikkosegmenttiä, ${streams.length} jokea/puroa ✓`);
 
   // ruudukko
+  await prog.phase("grid");
   const [x0,y0] = P.fwd(b.getSouth(), b.getWest()), [x1,y1] = P.fwd(b.getNorth(), b.getEast());
-  const W=x1-x0, H=y1-y0; const target=Math.max(20, Math.min(90, Math.round(Math.sqrt(5000*W/H))));
+  const W=x1-x0, H=y1-y0; const target=Math.max(30, Math.min(150, Math.round(Math.sqrt(12000*W/H))));
   const cell = W/target; const nx=Math.round(W/cell), ny=Math.max(1,Math.round(H/cell));
   const cells = new Array(nx*ny);
   const sb = new Buckets(cell*3); segs.forEach(s=>sb.add(s[0][0],s[0][1],s[1][0],s[1][1],s));
@@ -1161,7 +1563,7 @@ async function analyze(){
     }
   }
   const nWater = cells.filter(c=>c.water).length;
-  if (!nWater){ say("⚠ Näkymästä ei löytynyt vesialuetta. Siirrä karttaa järven tai meren päälle."); return; }
+  if (!nWater){ say("⚠ Näkymästä ei löytynyt vesialuetta. Siirrä karttaa järven tai meren päälle."); toast("Näkymästä ei löytynyt vesialuetta. Siirrä karttaa järven tai meren päälle."); return; }
   say(`Ruudukko ${nx}×${ny}, ruutu ≈ ${Math.round(cell)} m, vesiruutuja ${nWater}.`);
 
   // jokisuut: virtaviivan päätepisteet, jotka ovat vedessä tai alle 1,5 ruudun päässä rannasta
@@ -1173,13 +1575,13 @@ async function analyze(){
 
   // syvyys
   let depthSrc = null;
-  const key = $("mmlKey").value.trim();
-  if ($("useMmlDepth").checked && key){
-    say("Haetaan MML:n syvyyskäyrät ja -pisteet…");
+  for (const src of [{name:"SYKE", p:pS}, {name:"MML", p:pM}]){
+    if (!src.p || depthSrc) continue;
     try {
-      const r = await loadMmlDepth(b, key); say(r.note);
+      const rM = await src.p; if (!rM.ok) throw rM.e;
+      const r = rM.v; say(r.note + (r._cached!=null ? ` (välimuistista, ${r._cached} min vanha)` : ""));
       const pts=[]; let propKey=null;
-      for (const f of r.features){ const np = numProp(f.properties, /syvyys|depth|arvo/i); if(!np) continue; propKey=np.k; const d=Math.abs(np.v);
+      for (const f of r.features){ const np = depthProp(f.properties); if(!np) continue; propKey=np.k; const d=Math.abs(np.v);
         const g=f.geometry; if(!g) continue; const add=(ll)=>{ const [x,y]=P.fwd(ll[1],ll[0]); pts.push([x,y,d]); };
         if (g.type==="Point") add(g.coordinates); else if (g.type==="MultiPoint"||g.type==="LineString") g.coordinates.forEach(add);
         else if (g.type==="MultiLineString") g.coordinates.forEach(l=>l.forEach(add)); }
@@ -1188,16 +1590,19 @@ async function analyze(){
         const pb = new Buckets(cell*3); pts.forEach(p=>pb.add(p[0],p[1],p[0],p[1],p));
         cells.forEach(c=>{ if(!c.water) return; let near=[]; for(let r=1;r<=32 && near.length<6;r*=2){ near=[...pb.near(c.x,c.y,r)]; }
           if(!near.length) return; near = near.map(p=>[Math.hypot(p[0]-c.x,p[1]-c.y),p[2]]).sort((a,b)=>a[0]-b[0]).slice(0,8);
-          let nn=0, dd=0; for(const [d,v] of near){ const w=1/Math.pow(Math.max(d,1),2); nn+=w*v; dd+=w; } c.depth=nn/dd; c.src="MML (interpoloitu)"; });
-        depthSrc = `MML syvyyskäyrät/-pisteet, ${pts.length} pistettä, ominaisuus "${propKey}", interpoloitu (IDW)`;
+          let nn=0, dd=0; for(const [d,v] of near){ const w=1/Math.pow(Math.max(d,1),2); nn+=w*v; dd+=w; } c.depth=nn/dd; c.src=src.name+" (interpoloitu)"; });
+        depthSrc = `${src.name} syvyyskäyrät/-pisteet, ${pts.length} pistettä, ominaisuus "${propKey}", interpoloitu (IDW)`;
+        depthLayer.clearLayers(); drawDepthLines(r.features,"line");
         say("✓ "+depthSrc);
-      } else say("MML: näkymässä ei syvyystietoa ("+r.features.length+" kohdetta).");
-    } catch(e){ say("⚠ MML-syvyyshaku epäonnistui: "+e.message); }
+      } else say(src.name+": näkymässä ei syvyystietoa ("+r.features.length+" kohdetta).");
+    } catch(e){ say("⚠ "+src.name+"-syvyyshaku epäonnistui: "+e.message+(src.name==="SYKE"?" (mahdollisesti CORS-esto)":"")); }
   }
+  if (!depthSrc && $("useTrafDepth").checked) prog.insert("traf");
   if (!depthSrc && $("useTrafDepth").checked){
+    await prog.phase("traf");
     say("Haetaan Traficomin syvyysalueet…");
     try {
-      const r = await loadTrafDepth(b); say(r.note);
+      const tT=performance.now(); let r; try { r = await loadTrafDepth(b); } finally { timing["Traficom"]=(performance.now()-tT)/1000; } say(r.note); if(!depthLayer.getLayers().length) drawDepthLines(r.features,"area");
       let used=0, keys=null;
       for (const f of r.features){
         const lo = numProp(f.properties, /drval1|min.*(syv|depth)|(syv|depth).*min/i), hi = numProp(f.properties, /drval2|max.*(syv|depth)|(syv|depth).*max/i);
@@ -1219,9 +1624,15 @@ async function analyze(){
   for (let j=0;j<ny;j++) for (let i=0;i<nx;i++){ const c=cells[j*nx+i]; if(!c.water) continue; let g=0;
     for (const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){ const ii=i+di, jj=j+dj; if(ii<0||jj<0||ii>=nx||jj>=ny) continue; const n=cells[jj*nx+ii]; if(n.water) g=Math.max(g, Math.abs(n.depth-c.depth)/cell*100); }
     c.drop=g; }
+  if (areaRect) map.removeLayer(areaRect);
+  areaRect = L.rectangle(b, {color:"#880e4f", weight:1.5, dashArray:"6 6", fill:false, interactive:false}).addTo(map);
   grid = {nx,ny,x0,y0,cell,cells,P,b,depthSrc:depthSrc||"arvio rantaetäisyydestä"};
+  await prog.phase("score");
   renderScores();
+  report();
   say("Valmis.");
+  toast("Analyysi valmis. Parhaat kohdat on numeroitu kartalle"+(depthSrc?"":", syvyys on arvio rantaetäisyydestä")+". Lisätiedot: Kohteet.", 6000);
+  analyzeOk = true;
 }
 
 function cellScore(c, prof, cond){
@@ -1279,6 +1690,16 @@ function showCell(c){
   L.popup().setLatLng(grid.P.inv(c.x,c.y)).setContent(`<b>Pisteet ${Math.round(r.score*100)}/100</b><br>`+
     r.why.map(([t,v])=>`${t}: ${Math.round(v*100)}`).join("<br>")+`<br><small>Syvyys: ${c.src}</small>`).openOn(map);
 }
+const areaBtn = document.createElement("button");
+areaBtn.className = "p"; areaBtn.textContent = "Analysoi tämä alue";
+areaBtn.style.cssText = "position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:900;display:none;box-shadow:0 2px 10px rgba(0,0,0,.35)";
+map.getContainer().appendChild(areaBtn);
+L.DomEvent.disableClickPropagation(areaBtn);
+areaBtn.onclick = () => $("btnAnalyze").click();
+map.on("moveend", ()=>{
+  if (!grid) return;
+  areaBtn.style.display = grid.b.contains(map.getBounds()) ? "none" : "block";
+});
 map.on("click", ev=>{
   if (!grid) return; const [x,y]=grid.P.fwd(ev.latlng.lat, ev.latlng.lng);
   const i=Math.floor((x-grid.x0)/grid.cell), j=Math.floor((y-grid.y0)/grid.cell);
@@ -1324,9 +1745,11 @@ $("time").oninput = onTimeChange;
 $("species").onchange = () => { saveSettings(); renderActivity(); grid ? renderScores() : renderLure(); };
 $("clarity").onchange = () => { saveSettings(); grid ? renderScores() : renderLure(); };
 $("wtemp").onchange = onTimeChange;
-$("btnAnalyze").onclick = async () => { const btn=$("btnAnalyze"); btn.disabled=true; btn.textContent="Analysoidaan…";
+let analyzeOk = false;
+$("btnAnalyze").onclick = async () => { const btn=$("btnAnalyze"); btn.disabled=true; btn.textContent="…"; analyzeOk=false;
   try { await analyze(); } catch(e){ $("dataStatus").textContent += "\n⚠ Virhe: "+e.message; console.error(e); }
-  btn.disabled=false; btn.textContent="Analysoi näkymä"; };
+  prog.end(analyzeOk);
+  btn.disabled=false; btn.textContent="Analysoi"; };
 </script>
 </body>
 </html>
