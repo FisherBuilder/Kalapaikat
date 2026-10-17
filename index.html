@@ -677,6 +677,10 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1
 header{display:flex;gap:6px;align-items:center;padding:6px 8px;padding-top:calc(6px + env(safe-area-inset-top));background:var(--panel);border-bottom:1px solid var(--line)}
 header select{flex:1 1 0;min-width:0}
 header #btnLocate{flex:none;width:42px;padding:7px 0}
+header #btnClarityInfo{flex:none;width:34px;padding:7px 0;font-weight:700}
+.wcard{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:8px;margin:6px 0}
+.wswatch{flex:none;width:46px;height:46px;border-radius:8px;border:1px solid rgba(0,0,0,.2)}
+.sugg{background:var(--acc2);border-radius:10px;padding:8px 10px;margin:8px 0}
 header #btnAnalyze{flex:none}
 header h1{font-size:16px;margin:0 6px 0 2px;white-space:nowrap}
 select,input,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
@@ -714,7 +718,17 @@ h2{font-size:14px;margin:14px 0 6px;text-transform:uppercase;letter-spacing:.04e
 .bar div{flex:1;background:var(--acc);opacity:.85;min-height:1px;border-radius:2px 2px 0 0}
 .bar div.now{background:var(--warn)}
 .legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-.grad{height:10px;flex:1;border-radius:5px;background:linear-gradient(90deg,rgba(255,235,59,.6),rgba(255,152,0,.75),rgba(229,57,53,.85),rgba(136,14,79,.9))}
+.grad{height:10px;flex:1;border-radius:5px;background:linear-gradient(90deg,rgba(255,235,59,.6),rgba(255,167,38,.75),rgba(244,81,30,.85),rgba(198,40,40,.9))}
+.mlegend{background:var(--panel);color:var(--ink);border-radius:10px;padding:6px 6px 8px;box-shadow:0 1px 6px rgba(0,0,0,.3);text-align:center;font-size:11px;width:64px}
+.mlegend .vbar{width:14px;height:120px;margin:4px auto;border-radius:7px;background:linear-gradient(0deg,rgba(255,235,59,.7),rgba(255,167,38,.8),rgba(244,81,30,.9),rgba(198,40,40,1));border:1px solid rgba(0,0,0,.2)}
+.mlegend label{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:4px;cursor:pointer}
+.mlegend input{width:20px;height:20px;margin:0}
+.hpop ul{margin:4px 0 4px 16px;padding:0}.hpop li{margin:1px 0}
+.mbar{display:flex;align-items:flex-end;gap:2px;height:46px;margin-top:4px}
+.mbar div{flex:1;background:var(--line);border-radius:2px 2px 0 0;position:relative}
+.mbar div.cur{background:var(--acc)}
+.mlab{display:flex;gap:2px;font-size:9px;color:var(--muted)}.mlab span{flex:1;text-align:center}
+.delta-pos{color:#2e7d32;font-weight:700}.delta-neg{color:var(--bad);font-weight:700}
 details{margin:6px 0}summary{cursor:pointer;font-weight:600}
 .small{font-size:12px;color:var(--muted)}
 .hs{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#880e4f;color:#fff;font-weight:700;font-size:12px;border:2px solid #fff}
@@ -741,7 +755,11 @@ input[type=range]{width:100%;padding:0}
 .swrow{display:flex;flex-wrap:wrap;gap:6px 12px;margin:8px 0}
 .sw{display:inline-flex;align-items:center;gap:6px;font-size:13px}
 .lk{border-top:1px solid var(--line);margin-top:10px}
-.lf-me{width:16px;height:16px;border-radius:50%;background:#1e88e5;border:3px solid #fff;box-shadow:0 0 4px rgba(0,0,0,.5)}
+.lf-me{width:22px;height:22px;border-radius:50%;background:#1e88e5;border:3px solid #fff;box-shadow:0 0 0 6px rgba(30,136,229,.25),0 0 4px rgba(0,0,0,.5)}
+#btnLocate{font-size:18px;line-height:1}
+#btnLocate.on{background:#1e88e5;border-color:#1e88e5}
+#btnLocate.wait{animation:locpulse 1s infinite alternate}
+@keyframes locpulse{from{opacity:1}to{opacity:.4}}
 </style>
 </head>
 <body>
@@ -754,6 +772,7 @@ input[type=range]{width:100%;padding:0}
   <select id="clarity" aria-label="Veden väri">
     <option value="kirkas">Kirkas vesi</option><option value="humus" selected>Humus</option><option value="samea">Samea</option>
   </select>
+  <button id="btnClarityInfo" type="button" aria-label="Ohje vesityypin valintaan">ⓘ</button>
   <button id="btnLocate" aria-label="Paikanna">📍</button>
   <button id="btnAnalyze" class="p">Analysoi</button>
 </header>
@@ -778,6 +797,7 @@ input[type=range]{width:100%;padding:0}
     </section>
     <section id="sAct" class="sec" data-title="Aktiivisuus">
       <div id="act" class="status">–</div>
+      <div id="dayCmp" class="status"></div>
       <div id="hours"></div>
     </section>
     <section id="sLure" class="sec" data-title="Viehesuositus">
@@ -867,6 +887,12 @@ async function fetchText(url, timeoutMs=30000){
 
 /* ---------- kartta ---------- */
 const map = L.map("map", {zoomControl:true}).setView([61.50, 23.76], 12);
+// Tasojärjestys: taustakartta < analyysin värikartta < syvyyskäyrät < merkit. Näin syvyyskäyrät näkyvät aina arvion päällä.
+map.createPane("scorePane").style.zIndex = 410;
+map.createPane("depthPane").style.zIndex = 420;
+map.createPane("depthVec").style.zIndex = 430;
+map.getPane("scorePane").style.pointerEvents = "none";
+map.getPane("depthPane").style.pointerEvents = "none";
 const baseLayers = {
   "OpenStreetMap": L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}),
   "OpenTopoMap": L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", {maxZoom:17, attribution:"© OpenStreetMap, SRTM | © OpenTopoMap"}),
@@ -930,7 +956,7 @@ const SYKE_BASE = "https://paikkatiedot.ymparisto.fi/geoserver/inspire_el";
 // Siksi käyrille annetaan oma tyyli (SLD_BODY): tummansininen viiva ja syvyysluvut. Jos palvelin ei hyväksy
 // tyyliä tai nimikenttää, siirrytään seuraavaan vaihtoehtoon ja lopulta SYKEn oletustyyliin.
 // Tasot 10–11 piirretään tason 12 kuvista (SYKE ei piirrä mittakaavaa 1:200 000 pienempänä).
-const SYKE_WMS_OPT = {format:"image/png", transparent:true, version:"1.1.1", attribution:"Järvisyvyys © SYKE (CC BY 4.0)", minZoom:10, maxZoom:19, minNativeZoom:12, maxNativeZoom:16, zIndex:6};
+const SYKE_WMS_OPT = {format:"image/png", transparent:true, version:"1.1.1", attribution:"Järvisyvyys © SYKE (CC BY 4.0)", minZoom:10, maxZoom:19, minNativeZoom:12, maxNativeZoom:16, zIndex:6, pane:"depthPane"};
 function sykeSld(prop){
   const label = prop ? `<TextSymbolizer><Label><ogc:PropertyName>${prop}</ogc:PropertyName></Label><Font><CssParameter name="font-family">Arial</CssParameter><CssParameter name="font-size">11</CssParameter><CssParameter name="font-weight">bold</CssParameter></Font><LabelPlacement><LinePlacement/></LabelPlacement><Halo><Radius>1.5</Radius><Fill><CssParameter name="fill">#ffffff</CssParameter></Fill></Halo><Fill><CssParameter name="fill">#0d3c8c</CssParameter></Fill><VendorOption name="followLine">true</VendorOption><VendorOption name="repeat">350</VendorOption><VendorOption name="maxDisplacement">40</VendorOption></TextSymbolizer>` : "";
   return `<?xml version="1.0" encoding="UTF-8"?><StyledLayerDescriptor version="1.0.0" xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc"><NamedLayer><Name>EL.ContourLine</Name><UserStyle><FeatureTypeStyle><Rule><LineSymbolizer><Stroke><CssParameter name="stroke">#0d3c8c</CssParameter><CssParameter name="stroke-width">1.4</CssParameter><CssParameter name="stroke-opacity">0.9</CssParameter></Stroke></LineSymbolizer>${label}</Rule></FeatureTypeStyle></UserStyle></NamedLayer></StyledLayerDescriptor>`;
@@ -951,7 +977,7 @@ function makeSykeLines(){
 }
 { const s = parseInt(store.get("kp_sykeStyle")); if (!isNaN(s) && s>=0 && s<SYKE_STYLES.length) sykeStyleIdx = s; }
 makeSykeLines();
-const sykeAreas = L.tileLayer.wms(SYKE_BASE+"/wms", {...SYKE_WMS_OPT, layers:"EL.Syvyysalue", opacity:.55, zIndex:5});
+const sykeAreas = L.tileLayer.wms(SYKE_BASE+"/wms", {...SYKE_WMS_OPT, layers:"EL.Syvyysalue", opacity:.55, zIndex:5, pane:"tilePane"});
 layerCtl.addOverlay(sykeContours, "Järvien syvyyskäyrät (SYKE)");
 layerCtl.addOverlay(sykeAreas, "Järvien syvyysalueet (SYKE)");
 if (store.get("kp_sykeWms") !== "0") sykeContours.addTo(map);
@@ -982,7 +1008,7 @@ async function detectSeaLayers(){
 async function setupSeaLayer(){
   seaLayerNames = await detectSeaLayers();
   if (!seaLayerNames.length){ console.warn("Traficomin syvyystasoja ei löytynyt"); return; }
-  seaContours = L.tileLayer.wms(TRAF_R+"/wms", {layers:seaLayerNames.join(","), format:"image/png", transparent:true, version:"1.1.1", attribution:TRAF_ATTR, minZoom:10, maxZoom:19, zIndex:6});
+  seaContours = L.tileLayer.wms(TRAF_R+"/wms", {layers:seaLayerNames.join(","), format:"image/png", transparent:true, version:"1.1.1", attribution:TRAF_ATTR, minZoom:10, maxZoom:19, zIndex:6, pane:"depthPane"});
   layerCtl.addOverlay(seaContours, "Meren syvyyskäyrät (Traficom)");
   if (store.get("kp_seaWms") !== "0") seaContours.addTo(map);
 }
@@ -1003,13 +1029,24 @@ function velmuName(){ const s = VELMU_SP[$("species").value] || "hauki"; return 
 setTimeout(setupVelmu, 1200);
 let depthZoomHint = false;
 map.on("zoomend", ()=>{ if (!depthZoomHint && map.getZoom()<10 && (map.hasLayer(sykeContours) || (seaContours && map.hasLayer(seaContours)))){ depthZoomHint = true; toast("Syvyyskäyrät näkyvät, kun zoomaat lähemmäs.", 5000); } });
-let areaRect = null;
+let areaRect = null, resultsOn = true;
+const legendCtl = L.control({position:"topright"});
+legendCtl.onAdd = () => { const d = L.DomUtil.create("div", "mlegend");
+  d.innerHTML = `<b>Arvio</b><div>paras 3 %</div><div class="vbar"></div><div>paras 30 %</div><label><input type="checkbox" id="resToggle" checked>näytä</label>`;
+  d.style.display = "none"; L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); return d; };
+legendCtl.addTo(map);
+document.getElementById("resToggle").onchange = e => {
+  resultsOn = e.target.checked;
+  [scoreOverlay, hotspotLayer, areaRect].forEach(l=>{ if(!l) return; if (resultsOn) l.addTo(map); else map.removeLayer(l); });
+  if (!resultsOn) map.closePopup();
+};
 const depthLayer = L.layerGroup().addTo(map); layerCtl.addOverlay(depthLayer, "Syvyyskäyrät");
 function drawDepthLines(features, kind){
   let labels=0;
   L.geoJSON(features, {
+    pane: "depthVec",
     style: kind==="area" ? {color:"#1565c0", weight:1, opacity:.6, fill:false} : {color:"#1565c0", weight:1.4, opacity:.85},
-    pointToLayer: (f,ll)=>L.circleMarker(ll,{radius:2,color:"#1565c0",weight:1,fillOpacity:1}),
+    pointToLayer: (f,ll)=>L.circleMarker(ll,{radius:2,color:"#1565c0",weight:1,fillOpacity:1,pane:"depthVec"}),
     onEachFeature: (f,l)=>{
       const np = kind==="area" ? numProp(f.properties,/drval1|min/i) : depthProp(f.properties);
       if (!np) return; const t = (kind==="area"?"≥ ":"")+fmt(Math.abs(np.v),1).replace(/\.0$/,"")+" m";
@@ -1022,21 +1059,42 @@ function drawDepthLines(features, kind){
   }).addTo(depthLayer);
 }
 
-/* paikannus */
-let meMarker=null, meCircle=null, watchId=null, firstFix=true;
+/* paikannus
+   Aiempi versio pysäytti paikannuksen, jos ensimmäinen tarkka sijainti ei tullut 20 sekunnissa. iPhonella näin käy usein,
+   joten nyt haetaan ensin nopea karkea sijainti ja sen jälkeen tarkka sijainti ilman aikarajaa. Aikakatkaisu ei enää
+   pysäytä paikannusta, ja estetystä luvasta kerrotaan, mistä sen voi sallia. */
+let meMarker=null, meCircle=null, watchId=null, firstFix=true, lastFix=null;
+const IOS_HELP = "Salli sijainti: iPhonen Asetukset → Tietosuoja ja turvallisuus → Sijaintipalvelut päälle, ja sieltä Safari-sivustot (tai Edge) → Kun appia käytetään. Lisäksi selaimen osoiterivin aA-valikosta Sivuston asetukset → Sijainti → Salli. Lataa sivu sen jälkeen uudelleen.";
+function setLocBtn(state, title){ const b=$("btnLocate"); b.textContent="📍"; b.classList.toggle("on", state==="on"); b.classList.toggle("wait", state==="wait"); b.title = title||"Paikanna"; }
+function onFix(p){
+  const ll = [p.coords.latitude, p.coords.longitude]; lastFix = ll;
+  if (!meMarker){ meMarker = L.marker(ll, {icon:L.divIcon({className:"", html:'<div class="lf-me"></div>', iconSize:[22,22]}), zIndexOffset:1000, interactive:false}).addTo(map);
+    meCircle = L.circle(ll, {radius:p.coords.accuracy, color:"#1e88e5", weight:1, fillOpacity:.08, interactive:false}).addTo(map); }
+  meMarker.setLatLng(ll); meCircle.setLatLng(ll).setRadius(p.coords.accuracy);
+  if (firstFix){ map.setView(ll, Math.max(map.getZoom(), 14)); firstFix=false; toast("Sijainti löytyi, tarkkuus noin "+Math.round(p.coords.accuracy)+" m.", 3000); }
+  setLocBtn("on", "Sijainti ±"+Math.round(p.coords.accuracy)+" m");
+}
+function onLocErr(e){
+  if (e.code===1){ stopLocate(); toast("Sijainnin käyttö on estetty. "+IOS_HELP, 15000); }
+  else if (e.code===2){ toast("Sijaintia ei saatu juuri nyt (ei GPS-signaalia). Yritetään edelleen.", 5000); }
+  else if (e.code===3 && !lastFix){ toast("Sijainnin haku kestää. Yritetään edelleen…", 4000); }
+}
+function stopLocate(){ if (watchId!==null) navigator.geolocation.clearWatch(watchId); watchId=null; setLocBtn("off"); }
+async function startLocate(){
+  if (!("geolocation" in navigator)){ toast("Selain ei tue paikannusta.", 6000); return; }
+  if (!window.isSecureContext){ toast("Paikannus toimii vain https-osoitteesta. Avaa sovellus github.io-osoitteesta.", 8000); return; }
+  try { const st = navigator.permissions && await navigator.permissions.query({name:"geolocation"}); if (st && st.state==="denied"){ toast("Sijainnin käyttö on estetty. "+IOS_HELP, 15000); return; } } catch(e){}
+  firstFix = true; setLocBtn("wait", "Haetaan sijaintia…");
+  // nopea ensimmäinen sijainti (verkko/WLAN), sitten tarkka GPS-seuranta ilman aikarajaa
+  navigator.geolocation.getCurrentPosition(onFix, onLocErr, {enableHighAccuracy:false, maximumAge:120000, timeout:15000});
+  watchId = navigator.geolocation.watchPosition(onFix, onLocErr, {enableHighAccuracy:true, maximumAge:10000});
+}
 $("btnLocate").onclick = () => {
-  if (!("geolocation" in navigator)){ alert("Selain ei tue paikannusta."); return; }
-  if (watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; $("btnLocate").textContent="📍 Paikanna"; return; }
-  firstFix = true;
-  watchId = navigator.geolocation.watchPosition(p => {
-    const ll = [p.coords.latitude, p.coords.longitude];
-    if (!meMarker){ meMarker = L.marker(ll, {icon:L.divIcon({className:"", html:'<div class="lf-me"></div>', iconSize:[16,16]})}).addTo(map);
-      meCircle = L.circle(ll, {radius:p.coords.accuracy, color:"#1e88e5", weight:1, fillOpacity:.08}).addTo(map); }
-    meMarker.setLatLng(ll); meCircle.setLatLng(ll).setRadius(p.coords.accuracy);
-    if (firstFix){ map.setView(ll, Math.max(map.getZoom(), 14)); firstFix=false; }
-    $("btnLocate").textContent = "📍 ±"+Math.round(p.coords.accuracy)+" m";
-  }, e => { alert("Paikannus epäonnistui: "+e.message+"\nPaikannus vaatii yleensä https-osoitteen."); watchId=null; $("btnLocate").textContent="📍 Paikanna"; },
-  {enableHighAccuracy:true, maximumAge:5000, timeout:20000});
+  if (watchId===null){ startLocate(); return; }
+  // seuranta päällä: ensimmäinen painallus keskittää omaan sijaintiin, toinen (kun jo keskellä) lopettaa paikannuksen
+  if (lastFix){ const pt = map.latLngToContainerPoint(lastFix), sz = map.getSize();
+    if (Math.hypot(pt.x-sz.x/2, pt.y-sz.y/2) > 30){ map.setView(lastFix, Math.max(map.getZoom(), 14)); return; } }
+  stopLocate(); toast("Paikannus lopetettu.", 2500);
 };
 
 /* ---------- asetukset ---------- */
@@ -1085,6 +1143,7 @@ $("btnDiag").onclick = async () => {
   lines.push("SYKE-käyräkuva tästä näkymästä: "+sykeImg, "SYKE-käyrien tyyli: "+sykeStyleName, "Zoomaustaso: "+map.getZoom());
   lines.push("Meren syvyystasot: "+(seaLayerNames ? (seaLayerNames.join(", ")||"ei löytynyt") : "haku kesken")); out.textContent = lines.join("\n");
 };
+$("btnClarityInfo").onclick = openClarityModal;
 $("btnClearCache").onclick = async () => { await cache.clear(); $("dataStatus").textContent = "Välimuisti tyhjennetty."; };
 setupMml(); initBase();
 
@@ -1137,12 +1196,31 @@ async function loadWeather(lat, lon){
   for (let i=0;i<=nowIdx;i++){ if (T[i]==null) continue; const w=Math.exp(-(nowIdx-i)/(7*24)); num+=w*T[i]; den+=w; }
   const waterEst = den ? Math.max(0.5, num/den) : null;
   wx = {times, temp:T, cloud:j.hourly.cloud_cover, wind:j.hourly.wind_speed_10m, wdir:j.hourly.wind_direction_10m,
-        pres:j.hourly.surface_pressure, precip:j.hourly.precipitation, nowIdx, waterEst, lat, lon, sat:null};
-  try { wx.sat = await Promise.race([loadSykeSST(lat, lon), new Promise(r=>setTimeout(()=>r(null), 10000))]); } catch(e){ wx.sat = null; }
+        pres:j.hourly.surface_pressure, precip:j.hourly.precipitation, nowIdx, waterEst, lat, lon, sat:null, off};
+  // satelliittilämpötila haetaan taustalla, jotta se ei hidasta analyysiä; näkymä päivittyy, kun arvo saapuu
+  const myWx = wx;
+  // vuoden vertailuaineisto taustalla
+  const yk = `${Math.round(lat*4)/4}|${Math.round(lon*4)/4}`;
+  if (yearBaseKey !== yk){ yearBaseKey = yk; yearBase = null;
+    loadYearBaseline(lat, lon).then(d=>{ if (yearBaseKey===yk){ yearBase = d; renderDayCompare(); } }).catch(e=>{ const el=$("dayCmp"); if (el) el.innerHTML = `<div class="card small">Vuoden säähistoriaa ei saatu (${e.message}).</div>`; }); }
+  loadSykeSST(lat, lon).then(v=>{ if (wx===myWx && v){ wx.sat = v; renderConditions(); if (grid) renderScores(); } }).catch(()=>{});
 }
 /* SYKEn satelliittipintalämpötila (Sentinel-3, noin 1 km, Itämeri ja 79 suurinta järveä, CC BY 4.0).
    Arvo luetaan GetFeatureInfo-kyselyllä, joka toimii vain, jos palvelin sallii selainhaun (CORS). Pilvisinä päivinä arvoa ei ole,
    joten haetaan enintään 6 vuorokautta taaksepäin. */
+/* SYKEn satelliittinäkösyvyys (Sentinel-2, noin 60 m, CC BY 4.0), GetFeatureInfo 10 vrk taaksepäin. Vaatii CORS-luvan. */
+async function loadSykeSecchi(lat, lon){
+  const d0 = new Date();
+  for (let k=1; k<=10; k++){
+    const ds = new Date(d0.getTime() - k*86400e3).toISOString().slice(0,10);
+    const url = `https://geoserver2.ymparisto.fi/geoserver/eo/wms?service=WMS&version=1.1.1&request=GetFeatureInfo&layers=eo:EO_HR_WQ_S2_SDT&query_layers=eo:EO_HR_WQ_S2_SDT&styles=&srs=EPSG:4326&bbox=${(lon-0.003).toFixed(4)},${(lat-0.003).toFixed(4)},${(lon+0.003).toFixed(4)},${(lat+0.003).toFixed(4)}&width=5&height=5&x=2&y=2&info_format=application/json&time=${ds}`;
+    let j; try { j = await fetchJSON(url, {}, 8000); } catch(e){ if (k===1) throw e; continue; }
+    const f = (j.features||[])[0]; if (!f) continue;
+    const v = Object.values(f.properties||{}).map(Number).find(x=>!isNaN(x));
+    if (v!=null && v>0 && v<25) return {m:v, date:ds};
+  }
+  return null;
+}
 async function loadSykeSST(lat, lon){
   const d0 = new Date();
   for (let k=1; k<=6; k++){
@@ -1157,6 +1235,75 @@ async function loadSykeSST(lat, lon){
   }
   return null;
 }
+/* ---------- päivän vertailu vuoden keskiarvopäivään ----------
+   Vuoden säähistoria (ERA5, Open-Meteo Historical Weather API) haetaan kerran ja tallennetaan laitteelle 30 vrk:ksi.
+   Jokaiselle päivälle lasketaan sama sääpohjainen aktiivisuusarvio kuin tänään. Päivän arvo on vuorokauden
+   kahdeksan parhaan tunnin keskiarvo, eli se kuvaa päivän parasta kalastusikkunaa. */
+let yearBase = null, yearBaseKey = null;
+async function loadYearBaseline(lat, lon){
+  const la = Math.round(lat*4)/4, lo = Math.round(lon*4)/4, key = `year|${la}|${lo}`;
+  const c = await cache.get(key); if (c && Date.now()-c.t < 30*86400e3) return c.data;
+  const end = new Date(Date.now()-7*86400e3), start = new Date(end.getTime()-365*86400e3), f = d=>d.toISOString().slice(0,10);
+  const j = await fetchJSON(`https://archive-api.open-meteo.com/v1/archive?latitude=${la}&longitude=${lo}&start_date=${f(start)}&end_date=${f(end)}&hourly=temperature_2m,cloud_cover,wind_speed_10m,surface_pressure&wind_speed_unit=ms&timezone=auto`, {}, 45000);
+  const off = (j.utc_offset_seconds||0)*1000;
+  const data = {lat:la, lon:lo, off, time:j.hourly.time, T:j.hourly.temperature_2m, C:j.hourly.cloud_cover, W:j.hourly.wind_speed_10m, P:j.hourly.surface_pressure};
+  cache.set(key, {t:Date.now(), data}); return data;
+}
+function hourlyActivity(sp, H, i, water){
+  const s = H.time[i]; const [d,t]=s.split("T"); const [Y,M,D]=d.split("-").map(Number); const hh=+t.slice(0,2);
+  const date = new Date(Date.UTC(Y,M-1,D,hh) - H.off);
+  const c = {air:H.T[i], cloud:H.C[i], wind:H.W[i], p6: i>=6 && H.P[i]!=null && H.P[i-6]!=null ? H.P[i]-H.P[i-6] : null,
+             sun: sunElevation(date, H.lat, H.lon), water, month:M};
+  const a = activity(sp, c); return a ? a.score : null;
+}
+function dayScores(sp, H, waterOverride){
+  // veden lämpö arvioidaan samalla tavalla kuin sovelluksessa muutenkin: ilman lämmön liukuva keskiarvo (n. 7 vrk)
+  const out = {}; let ema = null;
+  for (let i=0;i<H.time.length;i++){ const T=H.T[i]; if (T==null) continue; ema = ema==null ? T : ema + (T-ema)/(7*24);
+    const w = waterOverride && waterOverride[H.time[i].slice(0,10)]!=null ? waterOverride[H.time[i].slice(0,10)] : Math.max(0.5, ema);
+    const v = hourlyActivity(sp, H, i, w); if (v==null) continue; const day = H.time[i].slice(0,10); (out[day] || (out[day]=[])).push(v); }
+  return Object.entries(out).filter(([d,a])=>a.length>=12).map(([day,a])=>{ a.sort((x,y)=>y-x); const top=a.slice(0,8); return {day, doy:doyOf(day), score: top.reduce((s,v)=>s+v,0)/top.length}; });
+}
+function doyOf(day){ const [Y,M,D]=day.split("-").map(Number); return Math.floor((Date.UTC(Y,M-1,D)-Date.UTC(Y,0,0))/86400e3); }
+// valitun päivän arvo nykyisestä ennusteesta (tunnit samalta kalenteripäivältä)
+function selectedDayScore(sp){
+  if (!wx) return null; const c0 = condAt(+$("time").value); if (!c0) return null;
+  const dayKey = new Date(c0.date.getTime() + (wx.off||0)).toISOString().slice(0,10);
+  const vals=[];
+  for (let i=0;i<wx.times.length;i++){ const dk = new Date(wx.times[i] + (wx.off||0)).toISOString().slice(0,10); if (dk!==dayKey) continue;
+    const c0h = condAt(i - wx.nowIdx); if (!c0h) continue;
+    // vertailun reiluuden vuoksi veden lämpö arvioidaan samalla tavalla kuin vuoden aineistossa (ilman lämmöstä)
+    const a = activity(sp, {...c0h, water: wx.waterEst}); if (a) vals.push(a.score); }
+  if (vals.length < 12) return null; vals.sort((a,b)=>b-a); const top = vals.slice(0,8);
+  return {day:dayKey, score: top.reduce((s,v)=>s+v,0)/top.length};
+}
+function renderDayCompare(){
+  const el = $("dayCmp"); if (!el) return;
+  const sp = $("species").value, today = selectedDayScore(sp);
+  if (!today){ el.innerHTML = ""; return; }
+  if (!yearBase){ el.innerHTML = `<div class="card small">Päivän vertailu vuoden keskiarvoon: haetaan vuoden säähistoriaa…</div>`; return; }
+  const mk = sp+"|"+$("clarity").value+"|"+yearBaseKey;
+  if (!renderDayCompare.memo || renderDayCompare.memo.k!==mk) renderDayCompare.memo = {k:mk, ds:dayScores(sp, yearBase)};
+  const ds = renderDayCompare.memo.ds; if (!ds.length){ el.innerHTML = ""; return; }
+  const mean = ds.reduce((s,d)=>s+d.score,0)/ds.length;
+  const better = ds.filter(d=>d.score < today.score).length / ds.length;
+  const tdoy = doyOf(today.day), season = ds.filter(d=>{ const dd=Math.abs(d.doy-tdoy); return Math.min(dd, 365-dd) <= 15; });
+  const smean = season.length ? season.reduce((s,d)=>s+d.score,0)/season.length : null;
+  const pct = (a,b)=> { const v=Math.round((a/b-1)*100); return `<span class="${v>=0?"delta-pos":"delta-neg"}">${v>=0?"+":""}${v} %</span>`; };
+  const months = Array.from({length:12},(_,m)=>{ const a=ds.filter(d=>+d.day.slice(5,7)===m+1); return a.length ? a.reduce((s,d)=>s+d.score,0)/a.length : 0; });
+  const mx = Math.max(...months, today.score), curM = +today.day.slice(5,7)-1;
+  const dateTxt = new Date(today.day+"T12:00:00").toLocaleDateString("fi-FI",{weekday:"short", day:"numeric", month:"numeric"});
+  el.innerHTML = `<div class="card"><b>Kalastuspäivä ${dateTxt}: ${Math.round(today.score)}/100</b>
+    <div class="kv small" style="margin-top:4px">
+      <span>Vuoden keskiarvopäivä</span><b>${Math.round(mean)} → ${pct(today.score, mean)}</b>
+      ${smean!=null?`<span>Sama vuodenaika (±15 vrk)</span><b>${Math.round(smean)} → ${pct(today.score, smean)}</b>`:""}
+      <span>Parempi kuin</span><b>${Math.round(better*100)} % vuoden päivistä</b>
+    </div>
+    <div class="mbar">${months.map((v,m)=>`<div class="${m===curM?"cur":""}" style="height:${Math.max(4, v/mx*100)}%" title="${["tammi","helmi","maalis","huhti","touko","kesä","heinä","elo","syys","loka","marras","joulu"][m]}: ${Math.round(v)}"></div>`).join("")}</div>
+    <div class="mlab">${["T","H","M","H","T","K","H","E","S","L","M","J"].map(x=>`<span>${x}</span>`).join("")}</div>
+    <div class="small">Kuukausien keskiarvot viimeisen vuoden säästä. Päivän arvo on vuorokauden kahdeksan parhaan tunnin keskiarvo samalla sääpohjaisella aktiivisuusarviolla (arvio, ei saalistilasto). Vertailussa veden lämpö arvioidaan molemmissa ilman lämmöstä, joten luku voi poiketa yllä olevasta hetken arvosta. Vuoden sää: Open-Meteo, ERA5.</div></div>`;
+}
+
 function condAt(off){
   if (!wx) return null;
   const i = Math.min(wx.nowIdx + off, wx.times.length-1);
@@ -1480,6 +1627,58 @@ function swatchSVG(ck){
   return `<svg viewBox="0 0 28 28" width="28" height="28" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${s.back}"/><stop offset=".5" stop-color="${s.side}"/><stop offset="1" stop-color="${s.belly}"/></linearGradient></defs>`+
     `<circle cx="14" cy="14" r="12" fill="url(#${id})" stroke="rgba(0,0,0,.35)"/>${s.stripes?`<path d="M9,3 l3,0 l-2,22 l-3,0z M16,3 l3,0 l-2,22 l-3,0z" fill="${s.stripes}" opacity=".7"/>`:""}${s.glow?`<circle cx="14" cy="14" r="13" fill="none" stroke="${s.glow}" stroke-width="2" opacity=".8"/>`:""}</svg>`;
 }
+/* ---------- vesityypin tunnistus ---------- */
+const CLARITY_NAME = {kirkas:"kirkas vesi", humus:"humusvesi (ruskea)", samea:"samea vesi"};
+// Raja-arvot: väriluku 40–100 mg Pt/l humuspitoinen, > 100 erittäin humuspitoinen; sameus > 5 FTU silminnähden samea,
+// < 1 FTU kirkas (ympäristöhallinnon vedenlaadun selitysliite). Näkösyvyyden rajat 1 m ja 3 m ovat sovelluksen arvioita.
+function suggestClarity(){
+  const reasons = []; let pick = null, basis = "yleissääntö";
+  const month = (condAt(+$("time").value)||{month:new Date().getMonth()+1}).month;
+  let colour=null, turb=null, secchi=null, cday=null, tday=null, sday=null;
+  if (grid && grid.vesla){ const ps = grid.vesla.profiles.slice().sort((a,b)=>b.day.localeCompare(a.day));
+    for (const p of ps){ if (colour==null && p.colour!=null){ colour=p.colour; cday=p.day; } if (turb==null && p.turb!=null){ turb=p.turb; tday=p.day; } if (secchi==null && p.secchi!=null){ secchi=p.secchi; sday=p.day; } } }
+  if (colour!=null){ basis="mittaus";
+    if (colour>=40){ pick="humus"; reasons.push(`väriluku ${fmt(colour)} mg Pt/l (${cday}), yli 40 = humuspitoinen`); }
+    else reasons.push(`väriluku ${fmt(colour)} mg Pt/l (${cday}), alle 40 = vähän humusta`); }
+  if (turb!=null){ basis="mittaus";
+    if (turb>5){ pick="samea"; reasons.unshift(`sameus ${fmt(turb,1)} FTU (${tday}), yli 5 = silminnähden samea`); }
+    else if (!pick && turb<1) { pick="kirkas"; reasons.push(`sameus ${fmt(turb,1)} FTU (${tday}), alle 1 = kirkas`); } else reasons.push(`sameus ${fmt(turb,1)} FTU (${tday})`); }
+  const sd = grid && grid.secchiSat;
+  if (sd){ if (basis==="yleissääntö") basis="satelliitti"; reasons.push(`satelliitin näkösyvyys ${fmt(sd.m,1)} m (${sd.date})`);
+    if (!pick){ pick = sd.m>3 ? "kirkas" : sd.m<1 ? "samea" : (colour==null ? "humus" : "kirkas"); } }
+  else if (secchi!=null){ reasons.push(`mitattu näkösyvyys ${fmt(secchi,1)} m (${sday})`); if (!pick) pick = secchi>3 ? "kirkas" : secchi<1 ? "samea" : "humus"; }
+  if (!pick){
+    const sea = grid ? grid.isSea : false;
+    if (sea){ if (month>=3 && month<=5){ pick="kirkas"; reasons.push("merellä vesi on keväällä usein kirkasta"); }
+              else if (month>=6 && month<=9){ pick="samea"; reasons.push("rannikon tuntumassa vesi on kesällä usein sameaa (levä, tuuli)"); }
+              else { pick="kirkas"; reasons.push("syksyllä ja talvella meriveden samennus yleensä vähenee"); } }
+    else { pick="humus"; reasons.push("metsä- ja suovaltaisten valuma-alueiden järvet ovat yleensä ruskeita; tarkista silmämääräisesti"); }
+  }
+  // kova tuuli viimeisen vuorokauden aikana samentaa rantavettä
+  if (wx){ let wmax=0; for (let i=Math.max(0,wx.nowIdx-24); i<=wx.nowIdx; i++) wmax=Math.max(wmax, wx.wind[i]||0);
+    if (wmax>=8){ reasons.push(`tuuli oli vuorokauden aikana ${fmt(wmax,0)} m/s, joten tuulen puoleiset rannat voivat olla tavallista sameampia`); if (pick==="kirkas" && basis!=="mittaus") pick="samea"; } }
+  return {pick, reasons, basis};
+}
+function openClarityModal(){
+  const sg = suggestClarity();
+  const basisTxt = {mittaus:"lähimmän vedenlaatuhavainnon mittaus (VESLA)", satelliitti:"satelliittikuva (SYKE)", "yleissääntö":"yleissääntö, ei mittausta"}[sg.basis];
+  $("modalBody").innerHTML = `<h2 id="modalTitle" style="margin-top:0">Vesityypin valinta</h2>
+  <div class="sugg"><b>Ehdotus tälle paikalle: ${CLARITY_NAME[sg.pick]}</b><br><span class="small">Peruste: ${basisTxt}</span>
+    <ul class="small" style="margin:4px 0 6px 18px;padding:0">${sg.reasons.map(r=>`<li>${r}</li>`).join("")}</ul>
+    <button class="p" type="button" onclick="applyClarity('${sg.pick}')">Käytä: ${CLARITY_NAME[sg.pick]}</button>
+    ${grid ? "" : `<p class="small">Tarkempi ehdotus saadaan, kun ajat ensin analyysin.</p>`}</div>
+  <h3>Näin tunnistat itse</h3>
+  <div class="wcard"><div class="wswatch" style="background:linear-gradient(#bfe3ef,#4f9fbf)"></div><div class="small"><b>Kirkas vesi.</b> Pohja tai vaalea viehe näkyy yli 3 metrin syvyyteen. Vesi on sinertävää tai vihertävää, ja kämmen näyttää vedessä luonnollisen väriseltä. Esimerkiksi karut kirkasvetiset järvet ja ulkosaaristo keväällä.</div></div>
+  <div class="wcard"><div class="wswatch" style="background:linear-gradient(#d9b98a,#6b4423)"></div><div class="small"><b>Humusvesi.</b> Vesi on teen tai kahvin väristä, ja vaalea viehe tai kämmen näyttää vedessä kellertävältä tai ruskealta. Näkyvyys noin 1–3 m. Tyypillinen metsä- ja suoalueiden järvissä ja joissa.</div></div>
+  <div class="wcard"><div class="wswatch" style="background:linear-gradient(#b8bfa3,#7d8466)"></div><div class="small"><b>Samea vesi.</b> Vesi on harmaata, vihreää tai maitomaisen ruskeaa, ja viehe katoaa näkyvistä alle metrin syvyydessä. Syinä savi, leväkukinta tai tuulen nostama pohjaliete. Usein rannikon tuntumassa kesällä, jokisuilla sateiden jälkeen ja tuulen puoleisilla rannoilla kovan tuulen jälkeen.</div></div>
+  <h3>Näkösyvyyskoe</h3>
+  <p class="small">Laske vaaleaa viehettä tai valkoista lusikkaa hitaasti veteen ja katso, missä syvyydessä se katoaa näkyvistä. Siiman pituudesta näet syvyyden. Yli 3 m tarkoittaa kirkasta vettä. 1–3 m on humusvettä, jos vesi on ruskeaa, ja muuten lievästi sameaa. Alle 1 m on sameaa vettä. Rajat ovat sovelluksen arvioita, ja tutkimuksissa käytetään samaa menetelmää valkoisella Secchi-levyllä.</p>
+  <h3>Miksi vesityyppi vaikuttaa vieheen väriin</h3>
+  <p class="small">Vesi suodattaa valoa eri tavoin. Ruskea humusvesi imee sinistä valoa, joten siinä erottuvat parhaiten keltainen, oranssi, kulta ja kupari. Sameassa vedessä näkyvyys on lyhyt, joten tärkeintä on kontrasti ja värinä: chartreuse, fluo-oranssi, valkoinen tai tumma siluetti. Kirkkaassa vedessä kala näkee vieheen tarkasti, ja luonnolliset ja hillityt värit toimivat parhaiten. Valon suodattuminen on fysiikkaa, mutta värien tehosta saaliiseen on lähinnä kalastajien kokemustietoa, ei tutkimusnäyttöä.</p>
+  <p class="small">Raja-arvot: väriluku yli 40 mg Pt/l = humuspitoinen, sameus yli 5 FTU = silminnähden samea (<a href="https://www.ymparisto.fi/sites/default/files/documents/Liite_5__Vedenlaatu_selitys_rajaarvot.pdf" target="_blank">ympäristöhallinnon vedenlaadun selitysliite</a>). Satelliitin näkösyvyys: <a href="https://avoindata.suomi.fi/data/sv/dataset/itameren-ja-suomen-jarvien-paivittainen-nakosyvyysaineisto-sentinel-2-msi-2016-daily-secch-2016" target="_blank">SYKE, Sentinel-2</a>.</p>`;
+  const m = $("modal"); m.hidden = false; document.body.style.overflow = "hidden"; $("modalClose").focus();
+}
+function applyClarity(v){ $("clarity").value = v; $("clarity").onchange(); closeLureModal(); toast("Vesityypiksi valittu: "+CLARITY_NAME[v], 3000); }
 function openLureModal(){
   if (!lastLure) return;
   const L0 = lastLure, sp = $("species").selectedOptions[0].textContent, cl = $("clarity").selectedOptions[0].textContent;
@@ -1505,6 +1704,43 @@ function makeProj(lat0, lon0){
 function segDist(px,py,ax,ay,bx,by){
   const dx=bx-ax, dy=by-ay, L2=dx*dx+dy*dy; let t = L2 ? ((px-ax)*dx+(py-ay)*dy)/L2 : 0; t=clamp(t);
   const qx=ax+t*dx, qy=ay+t*dy; return [Math.hypot(px-qx,py-qy), qx, qy, t];
+}
+/* Nopea ruutuhaku numeerisilla avaimilla. Haku etenee renkaittain lähimmästä ruudusta ulospäin ja lopettaa,
+   kun löydetty kohde on lähempänä kuin seuraava rengas voisi olla. Aiempi haku kokosi jokaiselle ruudulle
+   satojen tai tuhansien ruutujen ehdokasjoukon, mikä jumitti selaimen rannikolla, jossa rantaviivaa on paljon. */
+class FastBuckets {
+  constructor(size){ this.s=size; this.m=new Map(); this.stamp=0; this.p='_fb'+(FastBuckets.n=(FastBuckets.n||0)+1); }
+  k(i,j){ return (i+524288)*1048576 + (j+524288); }
+  addPt(x,y,item){ const k=this.k(Math.floor(x/this.s), Math.floor(y/this.s)); let a=this.m.get(k); if(!a){a=[];this.m.set(k,a);} a.push(item); }
+  addSeg(s){ // jaetaan pitkä jana ruutuihin näytteistämällä, ei koko rajaavaa suorakulmiota
+    const [a,b]=s, L=Math.hypot(b[0]-a[0],b[1]-a[1]), n=Math.max(1,Math.ceil(L/(this.s*0.5))); let last=null;
+    for (let q=0;q<=n;q++){ const x=a[0]+(b[0]-a[0])*q/n, y=a[1]+(b[1]-a[1])*q/n, k=this.k(Math.floor(x/this.s), Math.floor(y/this.s));
+      if (k===last) continue; last=k; let arr=this.m.get(k); if(!arr){arr=[];this.m.set(k,arr);} if (arr[arr.length-1]!==s) arr.push(s); } }
+  // fn(item) palauttaa etäisyyden tai Infinity, jos kohde ei kelpaa; palauttaa {item,d} tai null
+  nearest(x,y,maxR,fn){
+    const ci=Math.floor(x/this.s), cj=Math.floor(y/this.s), st=++this.stamp; let best=null;
+    for (let r=0;r<=maxR;r++){
+      for (let i=ci-r;i<=ci+r;i++) for (let j=cj-r;j<=cj+r;j++){
+        if (r>0 && i>ci-r && i<ci+r && j>cj-r && j<cj+r) continue;   // vain renkaan reunaruudut
+        const a=this.m.get(this.k(i,j)); if(!a) continue;
+        const P=this.p; for (const it of a){ if (it[P]===st) continue; it[P]=st; const d=fn(it); if (d<Infinity && (!best || d<best.d)) best={item:it, d}; } }
+      if (best && best.d <= r*this.s) break;
+    }
+    return best;
+  }
+}
+// Täyttää puuttuvat arvot naapureista kahdella läpikäynnillä (etäisyysmuunnos): kukin ruutu kokeilee naapuriensa
+// lähintä kohdetta ja laskee tarkan etäisyyden siihen. Kaukana rannasta olevat ruudut saavat näin oikean lähimmän janan
+// ilman raskasta hakua.
+function propagateNearest(nx, ny, refs, dists, distFn){
+  const N1=[[-1,0],[-1,-1],[0,-1],[1,-1]], N2=[[1,0],[1,1],[0,1],[-1,1]];
+  for (let pass=0; pass<2; pass++){
+    for (let j=0;j<ny;j++) for (let i=0;i<nx;i++) relax(i,j,N1);
+    for (let j=ny-1;j>=0;j--) for (let i=nx-1;i>=0;i--) relax(i,j,N2);
+  }
+  function relax(i,j,N){ const k=j*nx+i;
+    for (const [di,dj] of N){ const ii=i+di, jj=j+dj; if(ii<0||jj<0||ii>=nx||jj>=ny) continue; const r=refs[jj*nx+ii]; if(!r || r===refs[k]) continue;
+      const d=distFn(k, r); if (d < dists[k]){ dists[k]=d; refs[k]=r; } } }
 }
 class Buckets {
   constructor(size){ this.s=size; this.m=new Map(); }
@@ -1580,12 +1816,18 @@ async function loadOSM(b){
   const pb = padBounds(b); const bb = `${pb.s},${pb.w},${pb.n},${pb.e}`;
   const q = `[out:json][timeout:60];(way["natural"="water"](${bb});relation["natural"="water"](${bb});way["waterway"="riverbank"](${bb});way["natural"="coastline"](${bb});way["waterway"~"^(river|stream)$"](${bb});node["natural"~"^(rock|stone|shoal|reef)$"](${bb});node["seamark:type"="rock"](${bb});way["natural"~"^(shoal|reef)$"](${bb}););out geom;`;
   let lastErr;
-  for (const u of OVERPASS){
-    try { const j = await fetchJSON(u, {method:"POST", body:"data="+encodeURIComponent(q), headers:{"Content-Type":"application/x-www-form-urlencoded"}}, 60000);
-      cacheStore("osm2", pb, j); return j; }
-    catch(e){ lastErr=e; }
-  }
-  throw lastErr;
+  // Varmistettu pyyntö: jos ensimmäinen palvelin ei vastaa 8 sekunnissa tai antaa virheen, kysytään rinnalla toiselta
+  // ja käytetään ensin valmistuvaa vastausta. Jonossa olevan palvelimen odottaminen oli usein analyysin hitain vaihe.
+  const ask = u => fetchJSON(u, {method:"POST", body:"data="+encodeURIComponent(q), headers:{"Content-Type":"application/x-www-form-urlencoded"}}, 60000);
+  const j = await new Promise((resolve, reject)=>{
+    let done=false, fails=0, started=1;
+    const ok = v=>{ if(!done){ done=true; resolve(v); } };
+    const bad = e=>{ lastErr=e; fails++; if (started===1){ startSecond(); } else if (fails>=2 && !done) reject(lastErr); };
+    const startSecond = ()=>{ if (started>1) return; started=2; ask(OVERPASS[1]).then(ok, bad); };
+    ask(OVERPASS[0]).then(ok, bad);
+    setTimeout(startSecond, 8000);
+  });
+  cacheStore("osm2", pb, j); return j;
 }
 async function loadMmlDepth(b, key){
   const c = await cacheFind("mml", b, 30*24*3600e3); if (c) return {...c.data, _cached:c.ageMin};
@@ -1597,14 +1839,14 @@ async function loadMmlDepthNet(pb, key){
   const ids = (cols.collections||[]).map(c=>c.id).filter(id=>/syvyys/i.test(id));
   if (!ids.length) return {features:[], note:"MML:n kokoelmista ei löytynyt syvyystasoja", bb:pb};
   const feats=[]; const bbox=`${pb.w},${pb.s},${pb.e},${pb.n}`;
-  for (const id of ids){
+  await Promise.all(ids.map(async id=>{
     let url = `${base}/collections/${id}/items?f=json&limit=10000&bbox=${bbox}&api-key=${encodeURIComponent(key)}`;
     for (let page=0; page<5 && url; page++){
       const j = await fetchJSON(url, {}, 60000);
       (j.features||[]).forEach(f=>{ f._col=id; feats.push(f); });
       const nx = (j.links||[]).find(l=>l.rel==="next"); url = nx ? nx.href + (nx.href.includes("api-key")?"":"&api-key="+encodeURIComponent(key)) : null;
     }
-  }
+  }));
   return {features:feats, note:"MML-kokoelmat: "+ids.join(", "), ok:true, bb:pb};
 }
 /* SYKE: järvien ja jokien syvyysaineisto (CC BY 4.0, ei avainta) */
@@ -1620,11 +1862,9 @@ function swapIfLatLon(features){
 async function loadSykeDepth(b){
   const c = await cacheFind("syke", b, 30*24*3600e3); if (c) return {...c.data, _cached:c.ageMin};
   const pb = padBounds(b), feats=[];
-  for (const t of ["EL.ContourLine","EL.SpotElevation"]){
-    const url = `${SYKE_BASE}/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=inspire_el:${t}&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=20000&bbox=${pb.w},${pb.s},${pb.e},${pb.n},EPSG:4326`;
-    const j = await fetchJSON(url, {}, 60000);
-    swapIfLatLon(j.features||[]).forEach(f=>{ f._col=t; feats.push(f); });
-  }
+  const types = ["EL.ContourLine","EL.SpotElevation"];
+  const res = await Promise.all(types.map(t=>fetchJSON(`${SYKE_BASE}/wfs?service=WFS&version=1.0.0&request=GetFeature&typeName=inspire_el:${t}&outputFormat=application/json&srsName=EPSG:4326&maxFeatures=20000&bbox=${pb.w},${pb.s},${pb.e},${pb.n},EPSG:4326`, {}, 60000)));
+  res.forEach((j,k)=>swapIfLatLon(j.features||[]).forEach(f=>{ f._col=types[k]; feats.push(f); }));
   const r = {features:feats, note:`SYKE järvien syvyysaineisto: ${feats.length} kohdetta`};
   cacheStore("syke", pb, r); return r;
 }
@@ -1654,7 +1894,7 @@ async function loadLakeInfo(name, lat, lon){
 // Lähimpien havaintopaikkojen lämpötila- ja happiprofiilit. Profiilista lasketaan harppauskerros ja syvyys,
 // jonka alapuolella happea on alle 3 mg/l (hauki hakeutuu pois alle 4 mg/l ja lopettaa syönnin alle 2 mg/l).
 async function loadVesla(b, lat, lon){
-  const ck = "vesla|"+lat.toFixed(2)+"|"+lon.toFixed(2); const c = await cache.get(ck);
+  const ck = "vesla2|"+lat.toFixed(2)+"|"+lon.toFixed(2); const c = await cache.get(ck);
   if (c && Date.now()-c.t < 7*86400e3) return c.data;
   const f = `CoordEUREFFIN_WGS84_Lat ge ${b.getSouth().toFixed(4)} and CoordEUREFFIN_WGS84_Lat le ${b.getNorth().toFixed(4)} and CoordEUREFFIN_WGS84_Long ge ${b.getWest().toFixed(4)} and CoordEUREFFIN_WGS84_Long le ${b.getEast().toFixed(4)}`;
   const sj = await fetchJSON(`${SYKE_ODATA}/vesla/2.0/odata/Site_Wide?$filter=${encodeURIComponent(f)}&$select=Site_Id,Name,Lake,Depth_m,EnvironmentType,CoordEUREFFIN_WGS84_Lat,CoordEUREFFIN_WGS84_Long&$top=300&$format=json`, {headers:{Accept:"application/json"}}, 25000);
@@ -1662,16 +1902,19 @@ async function loadVesla(b, lat, lon){
   sites.forEach(s=>s.d = Math.hypot((s.CoordEUREFFIN_WGS84_Lat-lat)*111, (s.CoordEUREFFIN_WGS84_Long-lon)*111*Math.cos(lat*Math.PI/180)));
   sites.sort((a,b)=>a.d-b.d); sites = sites.slice(0,4);
   const profiles = [];
-  for (const s of sites){
-    const rf = `Site_Id eq ${s.Site_Id} and (substringof('emperature',AnalyteName) or substringof('xygen',AnalyteName)) and Time ge datetime'2012-01-01T00:00:00'`;
-    let rj; try { rj = await fetchJSON(`${SYKE_ODATA}/vesla/2.0/odata/Result_Wide?$filter=${encodeURIComponent(rf)}&$select=Time,SampleDepth_m,Value,Unit,AnalyteName&$orderby=Time desc&$top=1500&$format=json`, {headers:{Accept:"application/json"}}, 25000); } catch(e){ continue; }
+  await Promise.all(sites.map(async s=>{
+    const rf = `Site_Id eq ${s.Site_Id} and (substringof('emperature',AnalyteName) or substringof('xygen',AnalyteName) or substringof('ecchi',AnalyteName) or substringof('olour',AnalyteName) or substringof('olor',AnalyteName) or substringof('urbid',AnalyteName)) and Time ge datetime'2012-01-01T00:00:00'`;
+    let rj; try { rj = await fetchJSON(`${SYKE_ODATA}/vesla/2.0/odata/Result_Wide?$filter=${encodeURIComponent(rf)}&$select=Time,SampleDepth_m,Value,Unit,AnalyteName&$orderby=Time desc&$top=1500&$format=json`, {headers:{Accept:"application/json"}}, 25000); } catch(e){ return; }
     const byDay = {};
     for (const r of rj.value||[]){ if (r.SampleDepth_m==null || r.Value==null) continue; const day = String(r.Time).slice(0,10);
       const o = byDay[day] || (byDay[day] = {day, T:{}, O:{}});
       if (/emperature/i.test(r.AnalyteName)) o.T[r.SampleDepth_m] = r.Value;
-      else if (/xygen/i.test(r.AnalyteName) && /mg/i.test(r.Unit||"")) o.O[r.SampleDepth_m] = r.Value; }
+      else if (/xygen/i.test(r.AnalyteName) && /mg/i.test(r.Unit||"")) o.O[r.SampleDepth_m] = r.Value;
+      else if (/ecchi/i.test(r.AnalyteName)) o.secchi = r.Value;
+      else if (/colou?r/i.test(r.AnalyteName) && r.SampleDepth_m <= 2) o.colour = r.Value;
+      else if (/urbid/i.test(r.AnalyteName) && r.SampleDepth_m <= 2) o.turb = r.Value; }
     Object.values(byDay).forEach(o=>{ o.site = s.Name; o.siteD = s.d; o.siteDepth = s.Depth_m; o.lat=s.CoordEUREFFIN_WGS84_Lat; o.lon=s.CoordEUREFFIN_WGS84_Long; profiles.push(o); });
-  }
+  }));
   const data = {sites:sites.map(s=>({name:s.Name, d:s.d})), profiles};
   cache.set(ck, {t:Date.now(), data}); return data;
 }
@@ -1698,9 +1941,11 @@ let trafTypesCache = null;
 async function trafTypes(){
   if (trafTypesCache) return trafTypesCache;
   const base = $("trafWfs").value.trim();
+  try { const c = JSON.parse(store.get("kp_traftypes")||"null"); if (c && c.base===base && Date.now()-c.t < 30*86400e3) return (trafTypesCache = c.names); } catch(e){}
   const txt = await fetchText(base+(base.includes("?")?"&":"?")+"service=WFS&request=GetCapabilities");
   const xml = new DOMParser().parseFromString(txt,"text/xml");
   trafTypesCache = [...xml.getElementsByTagName("*")].filter(e=>e.localName==="FeatureType").map(ft=>{ const n=[...ft.children].find(c=>c.localName==="Name"); return n?n.textContent:null; }).filter(Boolean);
+  if (trafTypesCache.length) store.set("kp_traftypes", JSON.stringify({base, t:Date.now(), names:trafTypesCache}));
   return trafTypesCache;
 }
 async function loadTrafLines(b){
@@ -1778,6 +2023,7 @@ async function analyze(){
   const z = map.getZoom();
   const st = $("dataStatus"); const log=[]; const say = s=>{ log.push(s); st.textContent=log.join("\n"); };
   saveSettings(); depthLayer.clearLayers(); areaBtn.style.display = "none";
+  if (!resultsOn){ resultsOn = true; document.getElementById("resToggle").checked = true; hotspotLayer.addTo(map); }
   const c0 = map.getCenter();
   const useMml = $("useMmlDepth").checked && !!$("mmlKey").value.trim(), useTraf = $("useTrafDepth").checked, useSyke = $("useSykeDepth").checked;
   // analysoitava alue = näkymä + 30 % reunavara joka suuntaan; aineistot haetaan vielä 15 % laajemmalta alueelta
@@ -1800,6 +2046,7 @@ async function analyze(){
   const pS = full && useSyke ? timed("SYKE", loadSykeDepth(b)) : null;
   const pT = full && useTraf ? timed("Traficom", loadTrafLines(b)) : null;
   const pV = full ? timed("VESLA", loadVesla(b, lat0, lon0)) : null;
+  const pSD = full ? timed("näkösyvyys", Promise.race([loadSykeSecchi(lat0, lon0), new Promise(r=>setTimeout(()=>r(null), 12000))])) : null;
   const rW = await pW;
   if (rW.ok) say("Sää: Open-Meteo ✓"); else say("⚠ Sään haku epäonnistui: "+rW.e.message);
   renderConditions();
@@ -1841,21 +2088,32 @@ async function analyze(){
   const W=x1-x0, H=y1-y0; const target=Math.max(30, Math.min(150, Math.round(Math.sqrt(12000*W/H))));
   const cell = W/target; const nx=Math.round(W/cell), ny=Math.max(1,Math.round(H/cell));
   const cells = new Array(nx*ny);
-  const sb = new Buckets(cell*3); segs.forEach(s=>sb.add(s[0][0],s[0][1],s[1][0],s[1][1],s));
-  const cb = new Buckets(cell*3); coastSegs.forEach(s=>cb.add(s[0][0],s[0][1],s[1][0],s[1][1],s));
-  const nearestSeg = (bk,x,y,maxR)=>{ for(let r=1;r<=maxR;r*=2){ const cand=bk.near(x,y,r); if(!cand.size) continue; let best=null;
-      for(const s of cand){ const d=segDist(x,y,s[0][0],s[0][1],s[1][0],s[1][1]); if(!best||d[0]<best.d) best={d:d[0],qx:d[1],qy:d[2],s}; }
-      if (best && best.d <= r*bk.s) return best; if (r*2>maxR && best) return best; } return null; };
+  // rantaviivat ruutuhakuun; analyysialueen ulkopuoliset kaukaiset janat (esim. ison järven toinen pää) jätetään pois
+  const near500 = s => { const mx=Math.min(s[0][0],s[1][0]), Mx=Math.max(s[0][0],s[1][0]), my=Math.min(s[0][1],s[1][1]), My=Math.max(s[0][1],s[1][1]);
+    return Mx > x0-3000 && mx < x0+nx*cell+3000 && My > y0-3000 && my < y0+ny*cell+3000; };
+  const segsN = segs.filter(near500), coastN = coastSegs.filter(near500);
+  const sb = new FastBuckets(cell*3); segsN.forEach(s=>sb.addSeg(s));
+  const cb = new FastBuckets(cell*3); coastN.forEach(s=>cb.addSeg(s));
+  const sd = (x,y,s)=>segDist(x,y,s[0][0],s[0][1],s[1][0],s[1][1])[0];
+  const cx = k => x0 + ((k%nx)+.5)*cell, cy = k => y0 + (Math.floor(k/nx)+.5)*cell;
+  // 1) lähin rantajana (kaikki rannat) ja lähin rannikkojana jokaiselle ruudulle: lähihaku + täyttö naapureista
+  const NC = nx*ny, shRef = new Array(NC).fill(null), shD = new Float64Array(NC).fill(Infinity), coRef = new Array(NC).fill(null), coD = new Float64Array(NC).fill(Infinity);
+  for (let k=0;k<NC;k++){ const x=cx(k), y=cy(k);
+    const a = sb.nearest(x,y,4, s=>sd(x,y,s)); if (a){ shRef[k]=a.item; shD[k]=a.d; }
+    if (coastN.length){ const c2 = cb.nearest(x,y,4, s=>sd(x,y,s)); if (c2){ coRef[k]=c2.item; coD[k]=c2.d; } } }
+  propagateNearest(nx, ny, shRef, shD, (k,s)=>sd(cx(k),cy(k),s));
+  if (coastN.length) propagateNearest(nx, ny, coRef, coD, (k,s)=>sd(cx(k),cy(k),s));
   for (let j=0;j<ny;j++){
     const y = y0 + (j+.5)*cell; const xs = ringCrossings(rings, y);
     for (let i=0;i<nx;i++){
-      const x = x0 + (i+.5)*cell;
+      const x = x0 + (i+.5)*cell, k = j*nx+i;
       let cnt=0; for (const xx of xs){ if (xx<x) cnt++; else break; }
       let water = cnt%2===1;
-      if (!water && coastSegs.length){ const n = nearestSeg(cb,x,y,64); if(n){ const s=n.s; const cr=(s[1][0]-s[0][0])*(y-s[0][1])-(s[1][1]-s[0][1])*(x-s[0][0]); if (cr<0) water=true; } }
+      // rannikkoviivan vasemmalla puolella on maa, oikealla vesi (OSM:n käytäntö)
+      if (!water && coRef[k]){ const s=coRef[k]; const cr=(s[1][0]-s[0][0])*(y-s[0][1])-(s[1][1]-s[0][1])*(x-s[0][0]); if (cr<0) water=true; }
       const c = {x,y,water,depth:null,shoreD:null,shoreBear:null,mouthD:Infinity,drop:0,src:null};
-      if (water){ const n=nearestSeg(sb,x,y,64); if(n){ c.shoreD=n.d; c.shoreBear=(Math.atan2(n.qx-x, n.qy-y)*180/Math.PI+360)%360; } else c.shoreD = 2000; }
-      cells[j*nx+i]=c;
+      if (water){ const s=shRef[k]; if (s){ const q=segDist(x,y,s[0][0],s[0][1],s[1][0],s[1][1]); c.shoreD=q[0]; c.shoreBear=(Math.atan2(q[1]-x, q[2]-y)*180/Math.PI+360)%360; } else c.shoreD = 2000; }
+      cells[k]=c;
     }
   }
   const nWater = cells.filter(c=>c.water).length;
@@ -1886,25 +2144,26 @@ async function analyze(){
         else if (g.type==="LineString") addLine(g.coordinates);
         else if (g.type==="MultiLineString") g.coordinates.forEach(addLine); }
       if (pts.length>=10){
-        segs.forEach(s=>{ const L=Math.hypot(s[1][0]-s[0][0], s[1][1]-s[0][1]); const n=Math.max(1,Math.floor(L/(cell))); for(let k=0;k<n;k++){ const t=k/n; pts.push([s[0][0]+t*(s[1][0]-s[0][0]), s[0][1]+t*(s[1][1]-s[0][1]), 0]); } });
-        const pb = new Buckets(cell*3); pts.forEach(p=>pb.add(p[0],p[1],p[0],p[1],p));
+        segsN.forEach(s=>{ const L=Math.hypot(s[1][0]-s[0][0], s[1][1]-s[0][1]); const n=Math.max(1,Math.floor(L/(cell))); for(let k=0;k<n;k++){ const t=k/n; pts.push([s[0][0]+t*(s[1][0]-s[0][0]), s[0][1]+t*(s[1][1]-s[0][1]), 0]); } });
+        const pb = new FastBuckets(cell*3); pts.forEach(p=>pb.addPt(p[0],p[1],p));
         // Käyräinterpolointi: lähin käyräpiste p1 ja lähin eriarvoinen piste p2 vastakkaisella puolella (kulma > 90°).
         // Syvyys kasvaa lineaarisesti p1:stä p2:een. Jos vastakkaiselta puolelta ei löydy eriarvoista pistettä
         // (esim. suljetun käyrän sisällä), syvyys on p1:n arvo, jolloin kohouman laki jää tasaiseksi eikä painu syvemmäksi.
         // Tämä välttää painotetun keskiarvon (IDW) porrasmaiset tasanteet, jotka näkyisivät virheellisinä kohoumina.
+        let unresolved = 0;
         cells.forEach(c=>{ if(!c.water) return;
-          let near=[], p1=null, p2=null;
-          for (let r=1; r<=32; r*=2){
-            near=[...pb.near(c.x,c.y,r)].map(p=>({d:Math.hypot(p[0]-c.x,p[1]-c.y), v:p[2], dx:p[0]-c.x, dy:p[1]-c.y, pt:!!p[3]})).sort((a,b)=>a.d-b.d);
-            if (!near.length) continue; p1 = near[0];
-            // yksittäisen pisteen (esim. suurin syvyys) ympärille muodostuu kartio lähimpään eriarvoiseen käyrään
-            p2 = p1.pt ? near.find(q=>!q.pt && Math.abs(q.v-p1.v)>0.05)
-                       : near.find(q=>Math.abs(q.v-p1.v)>0.05 && (q.dx*p1.dx+q.dy*p1.dy) < 0);
-            if (p2 && p2.d <= r*pb.s) break;
-          }
-          if (!p1) return;
-          c.depth = (p2 && p1.d>0.5) ? p1.v + (p2.v-p1.v)*p1.d/(p1.d+p2.d) : p1.v;
+          const a = pb.nearest(c.x,c.y,8, p=>Math.hypot(p[0]-c.x,p[1]-c.y));
+          if (!a){ unresolved++; return; }
+          const P1=a.item, d1=a.d, dx1=P1[0]-c.x, dy1=P1[1]-c.y;
+          // yksittäisen pisteen (esim. suurin syvyys) ympärille muodostuu kartio lähimpään eriarvoiseen käyrään
+          const b2 = pb.nearest(c.x,c.y,8, q=>{ if (Math.abs(q[2]-P1[2])<=0.05) return Infinity;
+            if (P1[3]) return q[3] ? Infinity : Math.hypot(q[0]-c.x,q[1]-c.y);
+            return ((q[0]-c.x)*dx1 + (q[1]-c.y)*dy1) < 0 ? Math.hypot(q[0]-c.x,q[1]-c.y) : Infinity; });
+          c.depth = (b2 && d1>0.5) ? P1[2] + (b2.item[2]-P1[2])*d1/(d1+b2.d) : P1[2];
           c.src=src.name+" (interpoloitu)"; });
+        // kaukana mittapisteistä olevat vesiruudut saavat lähimmän lasketun naapurin syvyyden
+        if (unresolved){ for (let pass=0; pass<3; pass++) for (let j=0;j<ny;j++) for (let i=0;i<nx;i++){ const c=cells[j*nx+i]; if(!c.water || c.depth!=null) continue;
+          for (const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){ const ii=i+di, jj=j+dj; if(ii<0||jj<0||ii>=nx||jj>=ny) continue; const n=cells[jj*nx+ii]; if(n.water && n.depth!=null){ c.depth=n.depth; c.src=src.name+" (interpoloitu, kaukana mittauksista)"; break; } } } }
         depthSrc = `${src.name} syvyyskäyrät/-pisteet, ${pts.length} pistettä, ominaisuus "${propKey}", interpoloitu käyrien välillä`;
         depthLayer.clearLayers(); drawDepthLines(r.features,"line");
         say("✓ "+depthSrc);
@@ -1965,29 +2224,42 @@ async function analyze(){
     for (let dj=-2;dj<=2;dj++) for (let di=-2;di<=2;di++){ const ii=i+di, jj=j+dj; if(ii<0||jj<0||ii>=nx||jj>=ny) continue; const v=hv[jj*nx+ii]*(1-0.25*Math.max(Math.abs(di),Math.abs(dj))); if(v>m) m=v; }
     if (m>c.humpV){ c.humpV=m; if(!c.hump || c.hump<1) c.humpNear=true; } }
   // kivet, karit ja matalikot OpenStreetMapista: toimivat myös ilman syvyysaineistoa
-  if (rocks.length) cells.forEach(c=>{ if(!c.water) return; let dmin=Infinity; for(const r of rocks){ const d=Math.hypot(c.x-r[0],c.y-r[1]); if(d<dmin) dmin=d; }
+  const rb = new FastBuckets(Math.max(100, cell*3)); rocks.forEach(r=>rb.addPt(r[0],r[1],r));
+  if (rocks.length) cells.forEach(c=>{ if(!c.water) return; const nr = rb.nearest(c.x,c.y,1, r=>Math.hypot(c.x-r[0],c.y-r[1])); const dmin = nr ? nr.d : Infinity;
     c.rockD=dmin; const v=clamp(1-dmin/80)*clamp(((c.shoreD||0)-30)/60); if (v>c.humpV){ c.humpV=v; c.humpRock=true; } });
   say(`Juumia (äkkisyvä ranta) ${nJuuma} ruudussa. Vedenalaisia kohoumia ${nHump} ruudussa`+(rocks.length?`, kiviä ja karikoita OSM:ssä ${rocks.length}`:"")+(depthSrc?"":" (kohoumia ei voi tunnistaa ilman syvyysaineistoa)")+".");
   if (areaRect) map.removeLayer(areaRect);
-  areaRect = L.rectangle(b, {color:"#880e4f", weight:1.5, dashArray:"6 6", fill:false, interactive:false}).addTo(map);
-  let lake = null, vesla = null;
-  if (pL){ const r = await pL; if (r.ok && r.v){ lake = r.v; say(`Järvirekisteri: ${lake.name} (${lake.kunta||""}), suurin syvyys ${fmt(lake.max,1)} m, keskisyvyys ${fmt(lake.mean,1)} m.`); } else say(r.ok ? `Järvirekisteristä ei löytynyt järveä nimellä ${lakeName}.` : "⚠ Järvirekisterin haku epäonnistui: "+r.e.message+" (mahdollisesti CORS-esto)"); }
-  else if (full) say("Kartan keskipisteen vesialueelle ei löytynyt nimeä, joten järvirekisteriä ei haettu.");
-  if (pV){ const r = await pV; if (r.ok){ vesla = r.v; say(`VESLA: ${vesla.sites.length} havaintopaikkaa, ${vesla.profiles.length} näytepäivää.`); } else say("⚠ VESLA-haku epäonnistui: "+r.e.message+" (mahdollisesti CORS-esto)"); }
-  grid = {nx,ny,x0,y0,cell,cells,P,b,depthSrc:depthSrc||"arvio rantaetäisyydestä", lake, vesla};
+  areaRect = L.rectangle(b, {color:"#880e4f", weight:1.5, dashArray:"6 6", fill:false, interactive:false}); if (resultsOn) areaRect.addTo(map);
+  // Järvirekisteri, VESLA ja satelliittinäkösyvyys vain tarkentavat arviota. Tulos näytetään heti ilman niitä,
+  // ja kartta päivittyy taustalla sitä mukaa kuin tiedot saapuvat.
+  grid = {nx,ny,x0,y0,cell,cells,P,b,depthSrc:depthSrc||"arvio rantaetäisyydestä", lake:null, vesla:null, secchiSat:null, isSea: coastSegs.length>0 && !lakeName};
+  const myGrid = grid;
   await prog.phase("score");
-  renderConditions();   // veden lämpö voi tarkentua VESLA-mittauksesta
+  renderConditions();
   renderScores();
   report();
-  say("Valmis.");
-  toast("Analyysi valmis. Parhaat kohdat on numeroitu kartalle"+(depthSrc?"":", syvyys on arvio rantaetäisyydestä")+". Lisätiedot: Kohteet.", 6000);
+  say("Valmis. Tarkentavat tiedot (järvirekisteri, vedenlaatu, satelliitti) päivittyvät taustalla.");
+  const refresh = () => { if (grid!==myGrid) return; renderConditions(); renderScores(); };
+  if (pL) pL.then(r=>{ if (grid!==myGrid) return; if (r.ok && r.v){ grid.lake = r.v; say(`Järvirekisteri: ${r.v.name} (${r.v.kunta||""}), suurin syvyys ${fmt(r.v.max,1)} m, keskisyvyys ${fmt(r.v.mean,1)} m.`); refresh(); }
+    else say(r.ok ? `Järvirekisteristä ei löytynyt järveä nimellä ${lakeName}.` : "⚠ Järvirekisterin haku epäonnistui: "+r.e.message+" (mahdollisesti CORS-esto)"); });
+  else if (full) say("Kartan keskipisteen vesialueelle ei löytynyt nimeä, joten järvirekisteriä ei haettu.");
+  if (pV) pV.then(r=>{ if (grid!==myGrid) return; if (r.ok){ grid.vesla = r.v; say(`VESLA: ${r.v.sites.length} havaintopaikkaa, ${r.v.profiles.length} näytepäivää.`); refresh();
+      const sg = suggestClarity(); if (sg && sg.basis!=="yleissääntö" && sg.pick !== $("clarity").value) toast(`Vesityyppiehdotus: ${CLARITY_NAME[sg.pick]} (${sg.reasons[0]}). Vaihda ⓘ-painikkeesta.`, 9000); }
+    else say("⚠ VESLA-haku epäonnistui: "+r.e.message+" (mahdollisesti CORS-esto)"); });
+  if (pSD) pSD.then(r=>{ if (grid!==myGrid) return; if (r.ok && r.v){ grid.secchiSat = r.v; } });
+  const sg = suggestClarity();
+  if (sg && sg.basis!=="yleissääntö" && sg.pick !== $("clarity").value)
+    toast(`Vesityyppiehdotus: ${CLARITY_NAME[sg.pick]} (${sg.reasons[0]}). Vaihda ⓘ-painikkeesta.`, 9000);
+  else toast("Analyysi valmis. Parhaat kohdat on numeroitu kartalle"+(depthSrc?"":", syvyys on arvio rantaetäisyydestä")+". Lisätiedot: Kohteet.", 6000);
   analyzeOk = true;
 }
 
 function cellScore(c, prof, cond){
   const w = prof.w; let s=0, tot=0; const why=[];
   // syvyys
-  const d=c.depth; let ds = d>=prof.dmin && d<=prof.dmax ? 1 : d<prof.dmin ? clamp(1-(prof.dmin-d)/Math.max(1,prof.dmin*0.7)) : clamp(1-(d-prof.dmax)/Math.max(2,prof.dmax*0.6));
+  // tavoitevälin sisällä 0,75–1: välin keskikohta saa täydet pisteet, jotta koko väli ei ole tasaväristä
+  const mid=(prof.dmin+prof.dmax)/2, half=Math.max(0.5,(prof.dmax-prof.dmin)/2);
+  const d=c.depth; let ds = d>=prof.dmin && d<=prof.dmax ? 1-0.25*Math.abs(d-mid)/half : d<prof.dmin ? clamp(1-(prof.dmin-d)/Math.max(1,prof.dmin*0.7)) : clamp(1-(d-prof.dmax)/Math.max(2,prof.dmax*0.6));
   if (prof.o2lim!=null && d > prof.o2lim){ ds *= 0.2; why.push([`Happi alle 3 mg/l yli ${fmt(prof.o2lim,1)} m syvyydessä (${prof.o2src})`, 0.2]); }
   else if (prof.lowO2 && d>15){ ds *= 0.5; why.push(["Mahdollinen alusveden happikato (arvio)", 0.5]); }
   s+=w.depth*ds; tot+=w.depth; why.push(["Syvyys "+fmt(d,1)+" m (tavoite "+prof.dmin+"–"+prof.dmax+")", ds]);
@@ -2002,16 +2274,18 @@ function cellScore(c, prof, cond){
     s+=Math.abs(w.wind)*v; tot+=Math.abs(w.wind); why.push([w.wind>0?"Tuulenpuoleinen ranta":"Suojanpuoli", v]); }
   if (w.mouth && isFinite(c.mouthD)){ const v=clamp(1-c.mouthD/500); s+=w.mouth*v; tot+=w.mouth; why.push(["Jokisuu "+fmt(c.mouthD)+" m", v]); }
   let score = tot ? s/tot : 0;
-  if (w.juuma && c.juuma>0){ score = Math.min(1, score + 0.25*w.juuma*c.juuma); why.push(["Juuma, äkkisyvä ranta ("+fmt(c.drop,0)+" m / 100 m)", c.juuma]); }
+  // bonukset lisätään rajoittamatta, jotta parhaat ruudut erottuvat toisistaan (näytettävä pistemäärä rajataan 100:aan)
+  if (w.juuma && c.juuma>0){ score = score + 0.25*w.juuma*c.juuma; why.push(["Juuma, äkkisyvä ranta ("+fmt(c.drop,0)+" m / 100 m)", c.juuma, "bonus"]); }
   // kohouma tai kari on lisäpiste: muut ruudut eivät menetä pisteitä sen puuttuessa
-  if (w.hump && c.humpV>0){ score = Math.min(1, score + 0.3*w.hump*c.humpV);
-    why.push([c.humpRock ? "Kivi, kari tai matalikko "+fmt(c.rockD)+" m" : c.humpNear ? "Vedenalaisen kohouman reuna" : "Vedenalainen kohouma, "+fmt(c.hump,1)+" m ympäristöä matalampi", c.humpV]); }
-  return {score, why};
+  if (w.hump && c.humpV>0){ score = score + 0.3*w.hump*c.humpV;
+    why.push([c.humpRock ? "Kivi, kari tai matalikko "+fmt(c.rockD)+" m" : c.humpNear ? "Vedenalaisen kohouman reuna" : "Vedenalainen kohouma, "+fmt(c.hump,1)+" m ympäristöä matalampi", c.humpV, "bonus"]); }
+  return {score: Math.min(1, score), raw: score, why};
 }
 function colorFor(v){
   if (v<0.45) return null;
   const t = clamp((v-0.45)/0.5);
-  const stops=[[255,235,59,.45],[255,152,0,.6],[229,57,53,.72],[136,14,79,.82]];
+  // läpikuultavat värit, jotta taustakartta ja syvyyskäyrät erottuvat myös parhaiden alueiden alta
+  const stops=[[255,235,59,.28],[255,167,38,.40],[244,81,30,.50],[198,40,40,.58]];
   const k=Math.min(stops.length-2, Math.floor(t*(stops.length-1))), f=t*(stops.length-1)-k, a=stops[k], b=stops[k+1];
   return a.map((x,i)=>x+(b[i]-x)*f);
 }
@@ -2037,31 +2311,52 @@ function renderScores(){
   const prof = localizeProfile(speciesProfile(sp, T, month, cond && cond.sun < -6), month);
   const {nx,ny,cells} = grid;
   const cv=document.createElement("canvas"); cv.width=nx; cv.height=ny; const ctx=cv.getContext("2d"); const img=ctx.createImageData(nx,ny);
+  // Värit ovat suhteellisia: vain alueen parhaat 30 % ruuduista värjätään, ja tummin väri on parhaalla 3 %:lla.
+  // Aiemmin väri määräytyi kiinteästä pisterajasta, jolloin lähes kaikki sopivan syvyinen vesi näkyi punaisena.
   const ranked=[];
   for (let j=0;j<ny;j++) for(let i=0;i<nx;i++){ const c=cells[j*nx+i]; if(!c.water){ c.sc=null; continue; }
-    const r=cellScore(c,prof,cond); c.sc=r.score; ranked.push(c);
-    const col=colorFor(r.score); const o=((ny-1-j)*nx+i)*4;
-    if(col){ img.data[o]=col[0]; img.data[o+1]=col[1]; img.data[o+2]=col[2]; img.data[o+3]=Math.round(col[3]*255); } }
+    const r=cellScore(c,prof,cond); c.sc=r.score; c.raw=r.raw; c.gi=i; c.gj=j; ranked.push(c); }
+  const vals = ranked.map(c=>c.raw).sort((a,b)=>a-b), N=vals.length;
+  const pctOf = v => { let lo=0, hi=N; while(lo<hi){ const m=(lo+hi)>>1; if (vals[m] < v) lo=m+1; else hi=m; } return N? lo/N : 0; };
+  for (const c of ranked){ c.pct = pctOf(c.raw);
+    if (c.pct < 0.70 || c.sc < 0.45) continue;
+    const t = clamp((c.pct-0.70)/0.27), stops=[[255,235,59,.30],[255,167,38,.42],[244,81,30,.52],[198,40,40,.62]];
+    const k=Math.min(stops.length-2, Math.floor(t*(stops.length-1))), f=t*(stops.length-1)-k, A=stops[k], B=stops[k+1], col=A.map((x,q)=>x+(B[q]-x)*f);
+    const o=((ny-1-c.gj)*nx+c.gi)*4; img.data[o]=col[0]; img.data[o+1]=col[1]; img.data[o+2]=col[2]; img.data[o+3]=Math.round(col[3]*255); }
   ctx.putImageData(img,0,0);
   const [s,w]=grid.P.inv(grid.x0,grid.y0), [n,e]=grid.P.inv(grid.x0+nx*grid.cell, grid.y0+ny*grid.cell);
   if (scoreOverlay) map.removeLayer(scoreOverlay);
-  scoreOverlay = L.imageOverlay(cv.toDataURL(), [[s,w],[n,e]], {opacity:1, interactive:false}).addTo(map);
+  scoreOverlay = L.imageOverlay(cv.toDataURL(), [[s,w],[n,e]], {opacity:1, interactive:false, pane:"scorePane"});
+  if (resultsOn) scoreOverlay.addTo(map);
+  legendCtl.getContainer().style.display = "block";
   // hotspotit
-  hotspotLayer.clearLayers(); ranked.sort((a,b)=>b.sc-a.sc); const picked=[]; const minSep=Math.max(150, grid.cell*4);
-  for (const c of ranked){ if (picked.length>=5 || c.sc<0.55) break; if (picked.some(p=>Math.hypot(p.x-c.x,p.y-c.y)<minSep)) continue; picked.push(c); }
-  picked.forEach((c,k)=>{ const ll=grid.P.inv(c.x,c.y); L.marker(ll,{icon:L.divIcon({className:"",html:`<div class="hs">${k+1}</div>`,iconSize:[22,22]})}).addTo(hotspotLayer).on("click",()=>showCell(c)); });
+  // Kohteet: suurin rajoittamaton pistemäärä; tasapisteissä lähempänä näkymän keskustaa oleva voittaa.
+  // Analyysialueen reunimmaiset ruudut jätetään pois, koska niiden naapuritiedot ovat vajaat.
+  const vc = map.getCenter(), [vx,vy] = grid.P.fwd(vc.lat, vc.lng);
+  hotspotLayer.clearLayers(); ranked.sort((a,b)=> (b.raw-a.raw) || (Math.hypot(a.x-vx,a.y-vy) - Math.hypot(b.x-vx,b.y-vy))); const picked=[]; const minSep=Math.max(250, grid.cell*5);
+  for (const c of ranked){ if (picked.length>=5 || c.sc<0.55) break; if (c.gi<3 || c.gj<3 || c.gi>nx-4 || c.gj>ny-4) continue;
+    if (picked.some(p=>Math.hypot(p.x-c.x,p.y-c.y)<minSep)) continue; picked.push(c); }
+  picked.forEach((c,k)=>{ const ll=grid.P.inv(c.x,c.y); L.marker(ll,{icon:L.divIcon({className:"",html:`<div class="hs">${k+1}</div>`,iconSize:[22,22]})}).addTo(hotspotLayer).on("click",()=>showCell(c, k+1)); });
   $("spotInfo").innerHTML = `Malli: <b>${prof.phase}</b>, tavoitesyvyys ${prof.dmin}–${prof.dmax} m${cond&&cond.waterIsEst?" (veden lämpö arvio)":""}.<br><span class="small">${prof.note}</span><br>`+lakeHtml(month)+
     (picked.length ? `Parhaat kohdat ${picked.map((c,k)=>`<a href="#" data-k="${k}">${k+1}</a> (${Math.round(c.sc*100)})`).join(", ")}.` : "Näkymässä ei selvästi erottuvia kohtia tällä hetkellä.")+
-    `<br><span class="small">Syvyyslähde: ${grid.depthSrc}</span>`;
+    `<br><span class="small">Värit ovat suhteellisia: värjättynä on analysoidun alueen parhaat 30 % vesiruuduista, tummimpana parhaat 3 %. Syvyyslähde: ${grid.depthSrc}</span>`;
   $("spotInfo").querySelectorAll("a[data-k]").forEach(a=>a.onclick=ev=>{ ev.preventDefault(); const c=picked[+a.dataset.k]; map.panTo(grid.P.inv(c.x,c.y)); showCell(c); });
   renderLure(prof);
 }
-function showCell(c){
+function showCell(c, rank){
   const sp=$("species").value, cond=condAt(+$("time").value);
   const prof = localizeProfile(speciesProfile(sp, cond&&cond.water!=null?cond.water:12, cond?cond.month:(new Date().getMonth()+1), cond && cond.sun < -6), cond?cond.month:(new Date().getMonth()+1));
   const r = cellScore(c,prof,cond);
-  L.popup().setLatLng(grid.P.inv(c.x,c.y)).setContent(`<b>Pisteet ${Math.round(r.score*100)}/100</b><br>`+
-    r.why.map(([t,v])=>`${t}: ${Math.round(v*100)}`).join("<br>")+`<br><small>Syvyys: ${c.src}</small>`).openOn(map);
+  const spName = $("species").selectedOptions[0].textContent.toLowerCase();
+  // lisäpisteet (juuma, kohouma, kari) ovat aina myönteisiä, joten ne eivät kuulu heikkoihin tekijöihin
+  const good = r.why.filter(([t,v,b])=>v>=0.6 || (b && v>=0.15)).sort((a,b)=>(b[2]?1:0)-(a[2]?1:0) || b[1]-a[1]);
+  const weak = r.why.filter(([t,v,b])=>!b && v<0.35);
+  const title = rank ? `Kohde ${rank}: ${Math.round(r.score*100)}/100` : `Pisteet ${Math.round(r.score*100)}/100`;
+  let html = `<div class="hpop"><b>${title}</b><br><span class="small">${spName}, ${prof.phase}${c.pct!=null?`; alueen parhaat ${Math.max(1,Math.round((1-c.pct)*100))} %`:""}</span>`;
+  html += good.length ? `<br><b>Miksi hyvä:</b><ul>${good.map(([t])=>`<li>${t}</li>`).join("")}</ul>` : `<br>Ei selvästi vahvoja tekijöitä.`;
+  if (weak.length) html += `<b>Heikommat tekijät:</b><ul>${weak.map(([t])=>`<li>${t}</li>`).join("")}</ul>`;
+  html += `<span class="small">Kalasta noin ${prof.dmin}–${prof.dmax} m syvyydessä${c.depth!=null?`, ruudun syvyys noin ${fmt(c.depth,1)} m`:""}. Syvyystieto: ${c.src}.</span></div>`;
+  L.popup({maxWidth:280}).setLatLng(grid.P.inv(c.x,c.y)).setContent(html).openOn(map);
 }
 const areaBtn = document.createElement("button");
 areaBtn.className = "p"; areaBtn.textContent = "Analysoi tämä alue";
@@ -2074,7 +2369,7 @@ map.on("moveend", ()=>{
   areaBtn.style.display = grid.b.contains(map.getBounds()) ? "none" : "block";
 });
 map.on("click", ev=>{
-  if (!grid) return; const [x,y]=grid.P.fwd(ev.latlng.lat, ev.latlng.lng);
+  if (!grid || !resultsOn) return; const [x,y]=grid.P.fwd(ev.latlng.lat, ev.latlng.lng);
   const i=Math.floor((x-grid.x0)/grid.cell), j=Math.floor((y-grid.y0)/grid.cell);
   if (i<0||j<0||i>=grid.nx||j>=grid.ny) return; const c=grid.cells[j*grid.nx+i]; if (c.water) showCell(c);
 });
@@ -2097,7 +2392,8 @@ function renderConditions(){
 }
 function renderActivity(){
   const sp=$("species").value, c=condAt(+$("time").value); const a=activity(sp,c);
-  if (!a){ $("act").textContent="–"; $("hours").innerHTML=""; return; }
+  if (!a){ $("act").textContent="–"; $("hours").innerHTML=""; $("dayCmp").innerHTML=""; return; }
+  renderDayCompare();
   $("act").innerHTML = `<div class="card"><span class="big">${a.score}</span>/100 <span class="small">sääolosuhteiden sopivuus lajille (arvio)</span><div class="kv" style="margin-top:4px">`+
     a.parts.map(([t,v])=>`<span>${t}</span><b>${Math.round(v*100)}</b>`).join("")+`</div></div>`;
   // 48 h käyrä
