@@ -738,6 +738,9 @@ input[type=range]{width:100%;padding:0}
 #prog{position:absolute;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.25);pointer-events:none}
 #prog .box{background:var(--panel);color:var(--ink);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 18px rgba(0,0,0,.3);max-width:88%}
 #prog svg{flex:none}
+#prog .box{position:relative}
+#progX{position:absolute;top:-14px;right:-14px;width:32px;height:32px;border-radius:50%;border:none;background:var(--panel);color:var(--ink);font-size:18px;line-height:32px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:auto;cursor:pointer}
+.ver{font-size:11px;opacity:.6;margin-top:8px}
 #prog .pt{font-size:13px;line-height:1.35}
 #prog .pt b{font-size:15px}
 .infobtn{margin-top:8px;width:100%;background:var(--acc2);border-color:var(--acc2);color:var(--ink);font-weight:600}
@@ -809,6 +812,7 @@ input[type=range]{width:100%;padding:0}
       <div id="dataStatus" class="status"></div>
     </section>
     <section id="sSet" class="sec" data-title="Asetukset">
+      <div class="ver" id="appVer"></div>
       <div class="row"><label class="small" for="mmlKey">MML API-avain (maastokartta ja syvyyskäyrät)</label>
         <input id="mmlKey" type="text" placeholder="api-key" style="width:100%"></div>
       <div class="row"><label><input type="checkbox" id="useSykeDepth" checked> Käytä SYKEn järvisyvyysaineistoa (ei avainta)</label></div>
@@ -1983,7 +1987,7 @@ function numProp(props, re){
 const PHASES = {fetch:["Aineistojen haku",15], grid:["Ruudukon laskenta",2], traf:["Traficom-syvyysalueet",6], score:["Pisteytys",1]};
 const prog = (() => {
   const el = document.createElement("div"); el.id="prog";
-  el.innerHTML = `<div class="box"><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--line)" stroke-width="7"/>
+  el.innerHTML = `<div class="box"><button id="progX" title="Keskeytä analyysi" aria-label="Keskeytä analyysi">✕</button><svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--line)" stroke-width="7"/>
     <circle id="progArc" cx="32" cy="32" r="27" fill="none" stroke="var(--acc)" stroke-width="7" stroke-linecap="round" transform="rotate(-90 32 32)" stroke-dasharray="169.6" stroke-dashoffset="169.6"/>
     <text id="progPct" x="32" y="37" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor">0%</text></svg>
     <div class="pt"><b id="progPhase">Aloitetaan…</b><br><span id="progTime"></span></div></div>`;
@@ -2018,8 +2022,14 @@ const prog = (() => {
 })();
 
 /* ---------- analyysi ---------- */
+const APP_VERSION = "2026-10-17a";
+$("appVer").textContent = "Versio "+APP_VERSION;
+let runSeq = 0;
+class CancelErr extends Error {}
 let grid = null; // {nx, ny, b, cellW, cellH, cells:[{water,depth,shoreD,shoreBear,drop,mouthD}], depthSrc}
-async function analyze(){
+async function analyze(my){
+  const chk = () => { if (my!==runSeq) throw new CancelErr("keskeytetty"); };
+  const ph = async k => { chk(); await prog.phase(k); chk(); };
   const z = map.getZoom();
   const st = $("dataStatus"); const log=[]; const say = s=>{ log.push(s); st.textContent=log.join("\n"); };
   saveSettings(); depthLayer.clearLayers(); areaBtn.style.display = "none";
@@ -2033,7 +2043,7 @@ async function analyze(){
   const key = $("mmlKey").value.trim();
   const full = z>=13;
   const plan = ["fetch"]; if (full){ plan.push("grid"); if(!useMml && !useSyke && useTraf) plan.push("traf"); plan.push("score"); }
-  prog.start(plan); await prog.phase("fetch");
+  prog.start(plan); await ph("fetch");
   // haut rinnakkain: kokonaisaika = hitaimman haun kesto, ei summa
   const timing = {}; const pending = new Set();
   const timed = (name, p) => { const t=performance.now(); pending.add(name); prog.label("Haetaan: "+[...pending].join(", "));
@@ -2047,12 +2057,12 @@ async function analyze(){
   const pT = full && useTraf ? timed("Traficom", loadTrafLines(b)) : null;
   const pV = full ? timed("VESLA", loadVesla(b, lat0, lon0)) : null;
   const pSD = full ? timed("näkösyvyys", Promise.race([loadSykeSecchi(lat0, lon0), new Promise(r=>setTimeout(()=>r(null), 12000))])) : null;
-  const rW = await pW;
+  const rW = await pW; chk();
   if (rW.ok) say("Sää: Open-Meteo ✓"); else say("⚠ Sään haku epäonnistui: "+rW.e.message);
   renderConditions();
   const report = () => say("Kestot: "+Object.entries(timing).map(([k,v])=>k+" "+v.toFixed(1)+" s").join(", "));
   if (!full){ report(); say("Zoomaa lähemmäs (taso ≥13) karttaruudukon laskemiseksi. Nyt taso "+z+"."); toast("Sää päivitetty. Zoomaa lähemmäs vesialueelle, niin kartta-arvio voidaan laskea."); return; }
-  const rO = await pO;
+  const rO = await pO; chk();
   if (!rO.ok){ report(); say("⚠ OSM-haku epäonnistui: "+rO.e.message); toast("Vesialueiden haku epäonnistui ("+rO.e.message+"). Yritä hetken päästä uudelleen."); return; }
   const osm = rO.v;
   if (osm._cached!=null) say(`OSM: välimuistista (${osm._cached} min vanha)`);
@@ -2083,7 +2093,7 @@ async function analyze(){
   say(`OSM: ${rings.length} vesialueen reunaa, ${coastSegs.length} rannikkosegmenttiä, ${streams.length} jokea/puroa ✓`);
 
   // ruudukko
-  await prog.phase("grid");
+  await ph("grid");
   const [x0,y0] = P.fwd(b.getSouth(), b.getWest()), [x1,y1] = P.fwd(b.getNorth(), b.getEast());
   const W=x1-x0, H=y1-y0; const target=Math.max(30, Math.min(150, Math.round(Math.sqrt(12000*W/H))));
   const cell = W/target; const nx=Math.round(W/cell), ny=Math.max(1,Math.round(H/cell));
@@ -2132,7 +2142,7 @@ async function analyze(){
   for (const src of [{name:"SYKE", p:pS}, {name:"MML", p:pM}, {name:"Traficom", p:pT}]){
     if (!src.p || depthSrc) continue;
     try {
-      const rM = await src.p; if (!rM.ok) throw rM.e;
+      const rM = await src.p; chk(); if (!rM.ok) throw rM.e;
       const r = rM.v; say(r.note + (r._cached!=null ? ` (välimuistista, ${r._cached} min vanha)` : ""));
       const pts=[]; let propKey=null;
       for (const f of r.features){ const np = depthProp(f.properties); if(!np) continue; propKey=np.k; const d=Math.abs(np.v);
@@ -2172,10 +2182,10 @@ async function analyze(){
   }
   if (!depthSrc && $("useTrafDepth").checked) prog.insert("traf");
   if (!depthSrc && $("useTrafDepth").checked){
-    await prog.phase("traf");
+    await ph("traf");
     say("Haetaan Traficomin syvyysalueet…");
     try {
-      const tT=performance.now(); let r; try { r = await loadTrafDepth(b); } finally { timing["Traficom alueet"]=(performance.now()-tT)/1000; } say(r.note); if(!depthLayer.getLayers().length) drawDepthLines(r.features,"area");
+      const tT=performance.now(); let r; try { r = await loadTrafDepth(b); chk(); } finally { timing["Traficom alueet"]=(performance.now()-tT)/1000; } say(r.note); if(!depthLayer.getLayers().length) drawDepthLines(r.features,"area");
       let used=0, keys=null;
       for (const f of r.features){
         const lo = numProp(f.properties, /drval1|min.*(syv|depth)|(syv|depth).*min/i), hi = numProp(f.properties, /drval2|max.*(syv|depth)|(syv|depth).*max/i);
@@ -2234,7 +2244,7 @@ async function analyze(){
   // ja kartta päivittyy taustalla sitä mukaa kuin tiedot saapuvat.
   grid = {nx,ny,x0,y0,cell,cells,P,b,depthSrc:depthSrc||"arvio rantaetäisyydestä", lake:null, vesla:null, secchiSat:null, isSea: coastSegs.length>0 && !lakeName};
   const myGrid = grid;
-  await prog.phase("score");
+  await ph("score");
   renderConditions();
   renderScores();
   report();
@@ -2415,10 +2425,14 @@ $("species").onchange = () => { saveSettings(); if (velmuLayer){ if (VELMU_SP[$(
 $("clarity").onchange = () => { saveSettings(); grid ? renderScores() : renderLure(); };
 $("wtemp").onchange = onTimeChange;
 let analyzeOk = false;
+function resetAnalyzeBtn(){ const btn=$("btnAnalyze"); btn.disabled=false; btn.textContent="Analysoi"; }
 $("btnAnalyze").onclick = async () => { const btn=$("btnAnalyze"); btn.disabled=true; btn.textContent="…"; analyzeOk=false;
-  try { await analyze(); } catch(e){ $("dataStatus").textContent += "\n⚠ Virhe: "+e.message; console.error(e); }
-  prog.end(analyzeOk);
-  btn.disabled=false; btn.textContent="Analysoi"; };
+  const my = ++runSeq;
+  try { await analyze(my); } catch(e){ if (e instanceof CancelErr) return; $("dataStatus").textContent += "\n⚠ Virhe: "+e.message; console.error(e); }
+  if (my!==runSeq) return;   // keskeytetty, uusi ajo voi olla jo käynnissä
+  prog.end(analyzeOk); resetAnalyzeBtn(); };
+$("progX").onclick = () => { runSeq++; prog.end(false); resetAnalyzeBtn();
+  $("dataStatus").textContent += "\nAnalyysi keskeytettiin."; toast("Analyysi keskeytetty.", 4000); };
 </script>
 </body>
 </html>
